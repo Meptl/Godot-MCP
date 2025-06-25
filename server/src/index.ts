@@ -85,6 +85,33 @@ async function main() {
 
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
+
+  // Handle unhandled rejections and errors
+  process.on('unhandledRejection', (reason: any, promise) => {
+    // Check if this is an MCP timeout error
+    const errorStr = reason?.toString() || '';
+    const contextError = reason?.context?.error;
+    
+    if (errorStr.includes('Request timed out') || 
+        errorStr.includes('-32001') ||
+        contextError?.message?.includes('Request timed out') ||
+        contextError?.code === -32001) {
+      console.error('MCP client request timed out');
+      return;
+    }
+    
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+
+  process.on('uncaughtException', (error) => {
+    if (error.message?.includes('ERR_UNHANDLED_ERROR') && error.message?.includes('Request timed out')) {
+      console.error('MCP client request timed out');
+      return;
+    }
+    console.error('Uncaught Exception:', error);
+    // For other critical errors, exit
+    cleanup();
+  });
 }
 
 // Start the server

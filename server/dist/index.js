@@ -113,6 +113,31 @@ function main() {
                     };
                     process.on('SIGINT', cleanup);
                     process.on('SIGTERM', cleanup);
+                    // Handle unhandled rejections and errors
+                    process.on('unhandledRejection', function (reason, promise) {
+                        var _a, _b;
+                        // Check if this is an MCP timeout error
+                        var errorStr = (reason === null || reason === void 0 ? void 0 : reason.toString()) || '';
+                        var contextError = (_a = reason === null || reason === void 0 ? void 0 : reason.context) === null || _a === void 0 ? void 0 : _a.error;
+                        if (errorStr.includes('Request timed out') ||
+                            errorStr.includes('-32001') ||
+                            ((_b = contextError === null || contextError === void 0 ? void 0 : contextError.message) === null || _b === void 0 ? void 0 : _b.includes('Request timed out')) ||
+                            (contextError === null || contextError === void 0 ? void 0 : contextError.code) === -32001) {
+                            console.error('MCP client request timed out (this is normal when idle)');
+                            return;
+                        }
+                        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+                    });
+                    process.on('uncaughtException', function (error) {
+                        var _a, _b;
+                        if (((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('ERR_UNHANDLED_ERROR')) && ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('Request timed out'))) {
+                            console.error('MCP client request timed out (this is normal when idle)');
+                            return;
+                        }
+                        console.error('Uncaught Exception:', error);
+                        // For other critical errors, exit
+                        cleanup();
+                    });
                     return [2 /*return*/];
             }
         });

@@ -1,10 +1,24 @@
 # CLAUDE.md - Godot MCP Project Guidelines
 
+This project is an MCP server for Godot.
+It allows AI assistants to interface with Godot.
+
 ## Build & Run Commands
 - **Server Build**: `cd server && npm run build`
 - **Server Start**: `cd server && npm run start`
 - **Server Dev Mode**: `cd server && npm run dev` (auto-rebuild on changes)
 - **Run Godot Project**: Open project.godot in Godot Editor
+
+## Project Structure
+
+The /server folder contains the node mcp server.
+
+The root of the repository contains a Godot project with a plugin that allows it
+to start a server. This server performs actions and relays information about
+Godot to the node server.
+
+See specific documentation in the /docs folder for more detail.
+
 
 ## Code Style Guidelines
 
