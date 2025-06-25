@@ -123,7 +123,7 @@ function main() {
                             errorStr.includes('-32001') ||
                             ((_b = contextError === null || contextError === void 0 ? void 0 : contextError.message) === null || _b === void 0 ? void 0 : _b.includes('Request timed out')) ||
                             (contextError === null || contextError === void 0 ? void 0 : contextError.code) === -32001) {
-                            console.error('MCP client request timed out (this is normal when idle)');
+                            console.error('MCP client request timed out');
                             return;
                         }
                         console.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -131,7 +131,7 @@ function main() {
                     process.on('uncaughtException', function (error) {
                         var _a, _b;
                         if (((_a = error.message) === null || _a === void 0 ? void 0 : _a.includes('ERR_UNHANDLED_ERROR')) && ((_b = error.message) === null || _b === void 0 ? void 0 : _b.includes('Request timed out'))) {
-                            console.error('MCP client request timed out (this is normal when idle)');
+                            console.error('MCP client request timed out');
                             return;
                         }
                         console.error('Uncaught Exception:', error);
