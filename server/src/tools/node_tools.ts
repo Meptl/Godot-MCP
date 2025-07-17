@@ -34,6 +34,16 @@ interface UpdateNodePropertiesParams {
   properties: Record<string, any>;
 }
 
+interface AttachScriptParams {
+  node_path: string;
+  script_path: string;
+}
+
+interface GetScriptParams {
+  script_path?: string;
+  node_path?: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -189,6 +199,58 @@ export const nodeTools: MCPTool[] = [
         return `Children of node at ${parent_path}:\n\n${formattedChildren}`;
       } catch (error) {
         throw new Error(`Failed to list nodes: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'attach_script',
+    description: 'Attach a script to a node in the Godot scene tree',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node to attach the script to (e.g. "/root/MainScene/Player")'),
+      script_path: z.string()
+        .describe('Path to the script file to attach (e.g. "res://scripts/player.gd")'),
+    }),
+    execute: async ({ node_path, script_path }: AttachScriptParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('attach_script', {
+          node_path,
+          script_path,
+        });
+        
+        return `Attached script ${script_path} to node at ${node_path}`;
+      } catch (error) {
+        throw new Error(`Failed to attach script: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'get_script',
+    description: 'Get the content of a script file or from a node with an attached script',
+    parameters: z.object({
+      script_path: z.string().optional()
+        .describe('Path to the script file (e.g. "res://scripts/player.gd")'),
+      node_path: z.string().optional()
+        .describe('Path to a node with a script attached'),
+    }).refine(data => data.script_path !== undefined || data.node_path !== undefined, {
+      message: "Either script_path or node_path must be provided",
+    }),
+    execute: async ({ script_path, node_path }: GetScriptParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('get_script', {
+          script_path,
+          node_path,
+        });
+        
+        return `Script at ${result.script_path}:\n\n\`\`\`gdscript\n${result.content}\n\`\`\``;
+      } catch (error) {
+        throw new Error(`Failed to get script: ${(error as Error).message}`);
       }
     },
   },

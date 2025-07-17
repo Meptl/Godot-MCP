@@ -1,6 +1,5 @@
 import { FastMCP } from 'fastmcp';
 import { nodeTools } from './tools/node_tools.js';
-import { scriptTools } from './tools/script_tools.js';
 import { sceneTools } from './tools/scene_tools.js';
 import { editorTools } from './tools/editor_tools.js';
 import { getGodotConnection } from './utils/godot_connection.js';
