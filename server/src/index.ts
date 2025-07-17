@@ -27,10 +27,24 @@ import {
 } from './resources/editor_resources.js';
 
 /**
+ * Parse command line arguments
+ */
+function parseArgs(): { useHttp: boolean; port: number } {
+  const args = process.argv.slice(2);
+  const useHttp = args.includes('--http');
+  const portIndex = args.indexOf('--port');
+  const port = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1]) : 8080;
+  
+  return { useHttp, port };
+}
+
+/**
  * Main entry point for the Godot MCP server
  */
 async function main() {
-  console.error('Starting Godot MCP server...');
+  const { useHttp, port } = parseArgs();
+  
+  console.error(`Starting Enhanced Godot MCP server in ${useHttp ? 'HTTP' : 'stdio'} mode...`);
 
   // Create FastMCP instance
   const server = new FastMCP({
@@ -69,11 +83,24 @@ async function main() {
   }
 
   // Start the server
-  server.start({
-    transportType: 'stdio',
-  });
+  if (useHttp) {
+    server.start({
+      transportType: 'httpStream',
+      httpStream: {
+        endpoint: '/',
+        port: port
+      }
+    });
+    console.error(`Enhanced Godot MCP server started on HTTP port ${port}`);
+    console.error(`MCP endpoint available at: http://localhost:${port}/`);
+  } else {
+    server.start({
+      transportType: 'stdio',
+    });
+    console.error('Enhanced Godot MCP server started with stdio transport');
+  }
 
-  console.error('Godot MCP server started');
+  console.error('Ready to process commands from Claude or other AI assistants');
 
   // Handle cleanup
   const cleanup = () => {

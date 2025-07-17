@@ -54,15 +54,26 @@ import { scriptResource, scriptListResource, scriptMetadataResource } from './re
 import { projectStructureResource, projectSettingsResource, projectResourcesResource } from './resources/project_resources.js';
 import { editorStateResource, selectedNodeResource, currentScriptResource } from './resources/editor_resources.js';
 /**
+ * Parse command line arguments
+ */
+function parseArgs() {
+    var args = process.argv.slice(2);
+    var useHttp = args.includes('--http');
+    var portIndex = args.indexOf('--port');
+    var port = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1]) : 8080;
+    return { useHttp: useHttp, port: port };
+}
+/**
  * Main entry point for the Godot MCP server
  */
 function main() {
     return __awaiter(this, void 0, void 0, function () {
-        var server, godot, error_1, err, cleanup;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var _a, useHttp, port, server, allTools, godot, error_1, err, cleanup;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
-                    console.error('Starting Godot MCP server...');
+                    _a = parseArgs(), useHttp = _a.useHttp, port = _a.port;
+                    console.error("Starting Enhanced Godot MCP server in ".concat(useHttp ? 'HTTP' : 'stdio', " mode..."));
                     server = new FastMCP({
                         name: 'GodotMCP',
                         version: '1.0.0',
@@ -84,27 +95,45 @@ function main() {
                     server.addResource(sceneStructureResource);
                     server.addResource(scriptResource);
                     server.addResource(scriptMetadataResource);
-                    _a.label = 1;
+                    server.addResource(fullSceneTreeResource);
+                    server.addResource(debugOutputResource);
+                    server.addResource(assetListResource);
+                    console.error('All resources and tools registered');
+                    _b.label = 1;
                 case 1:
-                    _a.trys.push([1, 3, , 4]);
+                    _b.trys.push([1, 3, , 4]);
                     godot = getGodotConnection();
                     return [4 /*yield*/, godot.connect()];
                 case 2:
-                    _a.sent();
+                    _b.sent();
                     console.error('Successfully connected to Godot WebSocket server');
                     return [3 /*break*/, 4];
                 case 3:
-                    error_1 = _a.sent();
+                    error_1 = _b.sent();
                     err = error_1;
                     console.warn("Could not connect to Godot: ".concat(err.message));
                     console.warn('Will retry connection when commands are executed');
                     return [3 /*break*/, 4];
                 case 4:
                     // Start the server
-                    server.start({
-                        transportType: 'stdio',
-                    });
-                    console.error('Godot MCP server started');
+                    if (useHttp) {
+                        server.start({
+                            transportType: 'httpStream',
+                            httpStream: {
+                                endpoint: '/',
+                                port: port
+                            }
+                        });
+                        console.error("Enhanced Godot MCP server started on HTTP port ".concat(port));
+                        console.error("MCP endpoint available at: http://localhost:".concat(port, "/"));
+                    }
+                    else {
+                        server.start({
+                            transportType: 'stdio',
+                        });
+                        console.error('Enhanced Godot MCP server started with stdio transport');
+                    }
+                    console.error('Ready to process commands from Claude or other AI assistants');
                     cleanup = function () {
                         console.error('Shutting down Godot MCP server...');
                         var godot = getGodotConnection();
