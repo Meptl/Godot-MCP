@@ -52,7 +52,7 @@ async function main() {
   });
 
   // Register all tools
-  [...nodeTools, ...scriptTools, ...sceneTools, ...editorTools].forEach(tool => {
+  [...nodeTools, ...sceneTools, ...editorTools].forEach(tool => {
     server.addTool(tool);
   });
 
@@ -100,6 +100,7 @@ async function main() {
   }
 
   console.error('Ready to process commands from Claude or other AI assistants');
+  console.error('TIP: Use the analyze_script command to verify GDScript code edits for syntax errors');
 
   // Handle cleanup
   const cleanup = () => {
