@@ -44,6 +44,12 @@ interface GetScriptParams {
   node_path?: string;
 }
 
+interface ReparentNodeParams {
+  node_path: string;
+  new_parent_path: string;
+  index?: number;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -251,6 +257,34 @@ export const nodeTools: MCPTool[] = [
         return `Script at ${result.script_path}:\n\n\`\`\`gdscript\n${result.content}\n\`\`\``;
       } catch (error) {
         throw new Error(`Failed to get script: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'reparent_node',
+    description: 'Move a node to a new parent in the Godot scene tree',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node to move (e.g. "/root/UI/SpawnButton")'),
+      new_parent_path: z.string()
+        .describe('Path to the new parent node (e.g. "/root/UI/MainVBox/SpawnRow")'),
+      index: z.number().optional()
+        .describe('Position in the new parent\'s children (optional, defaults to end)'),
+    }),
+    execute: async ({ node_path, new_parent_path, index }: ReparentNodeParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('reparent_node', {
+          node_path,
+          new_parent_path,
+          index,
+        });
+        
+        return `Moved node from ${node_path} to ${new_parent_path}${index !== undefined ? ` at index ${index}` : ''}`;
+      } catch (error) {
+        throw new Error(`Failed to reparent node: ${(error as Error).message}`);
       }
     },
   },

@@ -77,6 +77,9 @@ func process_command(
 		"get_script":
 			_get_script(client_id, params, command_id)
 			return true
+		"reparent_node":
+			_reparent_node(client_id, params, command_id)
+			return true
 	return false  # Command not handled
 
 
@@ -424,3 +427,96 @@ func _get_script(client_id: int, params: Dictionary, command_id: String) -> void
 	file = null  # Close the file
 
 	_send_success(client_id, {"script_path": script_path, "content": content}, command_id)
+
+
+func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> void:
+	var node_path = params.get("node_path", "")
+	var new_parent_path = params.get("new_parent_path", "")
+	var index = params.get("index", -1)
+
+	# Basic validation
+	if node_path.is_empty():
+		return _send_error(client_id, "Node path cannot be empty", command_id)
+
+	if new_parent_path.is_empty():
+		return _send_error(client_id, "New parent path cannot be empty", command_id)
+
+	# Get edited scene
+	var edited_scene_root = _validate_and_get_edited_scene(client_id, command_id)
+	if not edited_scene_root:
+		return
+
+	# Get and validate the node to move
+	var node = _validate_and_get_node(node_path, client_id, command_id)
+	if not node:
+		return
+
+	# Get and validate the new parent
+	var new_parent = _validate_and_get_node(new_parent_path, client_id, command_id)
+	if not new_parent:
+		return
+
+	# Prevent moving to self or descendants
+	if node == new_parent:
+		return _send_error(client_id, "Cannot reparent node to itself", command_id)
+
+	# Check if new_parent is a descendant of node
+	var current = new_parent
+	while current:
+		if current == node:
+			return _send_error(client_id, "Cannot reparent node to its own descendant", command_id)
+		current = current.get_parent()
+
+	# Cannot reparent the root node
+	if node == edited_scene_root:
+		return _send_error(client_id, "Cannot reparent the root node", command_id)
+
+	# Get the current parent
+	var old_parent = node.get_parent()
+	if not old_parent:
+		return _send_error(client_id, "Node has no parent: %s" % node_path, command_id)
+
+	# Use undo/redo for proper editor integration
+	var undo_redo = _get_undo_redo()
+	if not undo_redo:
+		# Fallback method if we can't get undo/redo
+		old_parent.remove_child(node)
+		if index >= 0 and index < new_parent.get_child_count():
+			new_parent.add_child(node)
+			new_parent.move_child(node, index)
+		else:
+			new_parent.add_child(node)
+		# Maintain ownership
+		node.owner = edited_scene_root
+		_mark_scene_modified()
+	else:
+		# Use undo/redo for proper editor integration
+		undo_redo.create_action("Reparent Node")
+		undo_redo.add_do_method(old_parent, "remove_child", node)
+		if index >= 0 and index < new_parent.get_child_count():
+			undo_redo.add_do_method(new_parent, "add_child", node)
+			undo_redo.add_do_method(new_parent, "move_child", node, index)
+		else:
+			undo_redo.add_do_method(new_parent, "add_child", node)
+		undo_redo.add_do_property(node, "owner", edited_scene_root)
+		
+		# Undo operations
+		undo_redo.add_undo_method(new_parent, "remove_child", node)
+		undo_redo.add_undo_method(old_parent, "add_child", node)
+		undo_redo.add_undo_property(node, "owner", node.owner)
+		
+		undo_redo.commit_action()
+
+	# Mark the scene as modified
+	_mark_scene_modified()
+
+	_send_success(
+		client_id,
+		{
+			"node_path": node_path,
+			"old_parent_path": str(old_parent.get_path()),
+			"new_parent_path": new_parent_path,
+			"index": index if index >= 0 else new_parent.get_child_count() - 1
+		},
+		command_id
+	)
