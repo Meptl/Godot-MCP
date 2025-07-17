@@ -12,11 +12,6 @@ export_presets.cfg
 data_*/
 mono_crash.*.json
 
-# Node.js and npm
-node_modules/
-npm-debug.log
-dist/
-
 # System files
 .DS_Store
 Thumbs.db
