@@ -98,7 +98,7 @@ async function main() {
   server.addResource(scriptResource);
   server.addResource(scriptMetadataResource);
 
-  // Try to connect to Godot
+  // Try to connect to Godot and start continuous reconnection
   try {
     const godot = getGodotConnection(godotPort);
     await godot.connect();
@@ -106,7 +106,7 @@ async function main() {
   } catch (error) {
     const err = error as Error;
     console.warn(`Could not connect to Godot on port ${godotPort}: ${err.message}`);
-    console.warn('Will retry connection when commands are executed');
+    console.warn('Will continuously retry connection in background');
   }
 
   // Start the server

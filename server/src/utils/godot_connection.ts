@@ -25,25 +25,21 @@ export interface GodotCommand {
 export class GodotConnection {
   private ws: WebSocket | null = null;
   private connected = false;
+  private reconnecting = false;
+  private retryTimer: NodeJS.Timeout | null = null;
   private commandQueue: Map<string, { 
     resolve: (value: any) => void;
     reject: (reason: any) => void;
     timeout: NodeJS.Timeout;
   }> = new Map();
   private commandId = 0;
-  
-  /**
-   * Creates a new Godot connection
-   * @param url WebSocket URL for the Godot server
-   * @param timeout Command timeout in ms
-   * @param maxRetries Maximum number of connection retries
-   * @param retryDelay Delay between retries in ms
-   */
+  private shouldReconnect = true;
+
   constructor(
     private url: string = 'ws://localhost:9080',
     private timeout: number = 20000,
-    private maxRetries: number = 3,
-    private retryDelay: number = 2000
+    private initialRetryDelay: number = 2000,
+    private maxRetryDelay: number = 30000
   ) {
     console.error('GodotConnection created with URL:', this.url);
   }
@@ -53,14 +49,14 @@ export class GodotConnection {
    */
   async connect(): Promise<void> {
     if (this.connected) return;
-    
-    let retries = 0;
+    if (this.reconnecting) return;
+
+    this.reconnecting = true;
     
     const tryConnect = (): Promise<void> => {
       return new Promise<void>((resolve, reject) => {
-        console.error(`Connecting to Godot WebSocket server at ${this.url}... (Attempt ${retries + 1}/${this.maxRetries + 1})`);
-        
-        // Use protocol option to match Godot's supported_protocols
+        console.error(`Connecting to Godot WebSocket server at ${this.url}...`);
+
         this.ws = new WebSocket(this.url, {
           protocol: 'json',
           handshakeTimeout: 8000,  // Increase handshake timeout
@@ -69,7 +65,7 @@ export class GodotConnection {
         
         this.ws.on('open', () => {
           this.connected = true;
-          console.error('Connected to Godot WebSocket server');
+          this.reconnecting = false;
           resolve();
         });
         
@@ -112,7 +108,25 @@ export class GodotConnection {
             this.connected = false;
           }
         });
-        
+
+        this.ws.on('close', (code: number, reason: string) => {
+          console.error(`WebSocket closed (code: ${code}, reason: ${reason || 'No reason provided'})`);
+          this.connected = false;
+          this.ws = null;
+
+          // Reject pending commands
+          this.commandQueue.forEach((command, id) => {
+            clearTimeout(command.timeout);
+            command.reject(new Error('Connection closed'));
+          });
+          this.commandQueue.clear();
+
+          // Start continuous reconnection if enabled
+          if (this.shouldReconnect && !this.reconnecting) {
+            this.scheduleReconnect();
+          }
+        });
+
         // Set connection timeout
         const connectionTimeout = setTimeout(() => {
           if (this.ws?.readyState !== WebSocket.OPEN) {
@@ -129,38 +143,45 @@ export class GodotConnection {
         });
       });
     };
-    
-    // Try connecting with retries
-    while (retries <= this.maxRetries) {
-      try {
-        await tryConnect();
-        return;
-      } catch (error) {
-        retries++;
-        
-        if (retries <= this.maxRetries) {
-          console.error(`Connection attempt failed. Retrying in ${this.retryDelay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-        } else {
-          throw error;
-        }
+
+    try {
+      await tryConnect();
+    } catch (error) {
+      this.reconnecting = false;
+      
+      // Schedule reconnection for continuous retry
+      if (this.shouldReconnect) {
+        this.scheduleReconnect();
       }
+      
+      throw error;
     }
   }
-  
-  /**
-   * Sends a command to Godot and waits for a response
-   * @param type Command type
-   * @param params Command parameters
-   * @returns Promise that resolves with the command result
-   */
+
+  private scheduleReconnect(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+    }
+    
+    // Use exponential backoff with jitter, capped at maxRetryDelay
+    const delay = Math.min(
+      this.initialRetryDelay + Math.random() * 1000,
+      this.maxRetryDelay
+    );
+    
+    console.error(`Scheduling reconnection attempt in ${Math.round(delay)}ms...`);
+    
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      this.connect().catch(() => {
+        // Connection failed, scheduleReconnect will be called again from the close handler
+      });
+    }, delay);
+  }
+
   async sendCommand<T = any>(type: string, params: Record<string, any> = {}): Promise<T> {
     if (!this.ws || !this.connected) {
-      try {
-        await this.connect();
-      } catch (error) {
-        throw new Error(`Failed to connect: ${(error as Error).message}`);
-      }
+      throw new Error('Not connected to Godot WebSocket. Please ensure Godot is running and the MCP plugin is enabled.');
     }
     
     return new Promise<T>((resolve, reject) => {
@@ -202,6 +223,13 @@ export class GodotConnection {
    * Disconnects from the Godot WebSocket server
    */
   disconnect(): void {
+    this.shouldReconnect = false;
+    
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+    
     if (this.ws) {
       // Clear all pending commands
       this.commandQueue.forEach((command, commandId) => {
