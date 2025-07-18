@@ -227,12 +227,11 @@ export class GodotConnection {
 // Singleton instance
 let connectionInstance: GodotConnection | null = null;
 
-/**
- * Gets the singleton instance of GodotConnection
- */
-export function getGodotConnection(): GodotConnection {
+export function getGodotConnection(port: number = 9080): GodotConnection {
   if (!connectionInstance) {
-    connectionInstance = new GodotConnection();
+    const url = `ws://127.0.0.1:${port}`;
+    connectionInstance = new GodotConnection(url);
   }
   return connectionInstance;
 }
+

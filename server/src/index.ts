@@ -28,20 +28,22 @@ import {
 /**
  * Parse command line arguments
  */
-function parseArgs(): { useHttp: boolean; port: number } {
+function parseArgs(): { useHttp: boolean; port: number; godotPort: number } {
   const args = process.argv.slice(2);
   const useHttp = args.includes('--http');
   const portIndex = args.indexOf('--port');
   const port = portIndex !== -1 && args[portIndex + 1] ? parseInt(args[portIndex + 1]) : 8080;
+  const godotPortIndex = args.indexOf('--godot-port');
+  const godotPort = godotPortIndex !== -1 && args[godotPortIndex + 1] ? parseInt(args[godotPortIndex + 1]) : 9080;
   
-  return { useHttp, port };
+  return { useHttp, port, godotPort };
 }
 
 /**
  * Main entry point for the Godot MCP server
  */
 async function main() {
-  const { useHttp, port } = parseArgs();
+  const { useHttp, port, godotPort } = parseArgs();
   
   console.error(`Starting Enhanced Godot MCP server in ${useHttp ? 'HTTP' : 'stdio'} mode...`);
 
@@ -72,12 +74,12 @@ async function main() {
 
   // Try to connect to Godot
   try {
-    const godot = getGodotConnection();
+    const godot = getGodotConnection(godotPort);
     await godot.connect();
-    console.error('Successfully connected to Godot WebSocket server');
+    console.error(`Successfully connected to Godot WebSocket server on port ${godotPort}`);
   } catch (error) {
     const err = error as Error;
-    console.warn(`Could not connect to Godot: ${err.message}`);
+    console.warn(`Could not connect to Godot on port ${godotPort}: ${err.message}`);
     console.warn('Will retry connection when commands are executed');
   }
 
@@ -104,8 +106,8 @@ async function main() {
 
   // Handle cleanup
   const cleanup = () => {
-    console.error('Shutting down Godot MCP server...');
-    const godot = getGodotConnection();
+    console.error('Shutting down Enhanced Godot MCP server...');
+    const godot = getGodotConnection(godotPort);
     godot.disconnect();
     process.exit(0);
   };
