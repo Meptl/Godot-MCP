@@ -82,8 +82,11 @@ func _enter_tree():
 		var result = websocket_server.start_server()
 		if result == OK:
 			print("MCP Server autostarted successfully on port %d" % websocket_server.get_port())
-			# Update the panel UI to reflect the server state
+			# Update the panel UI to reflect the server state and actual port used
 			if panel and panel.has_method("update_ui"):
+				# Update the port input to reflect the actual port used
+				if panel.port_input:
+					panel.port_input.value = websocket_server.get_port()
 				panel.update_ui()
 		else:
 			printerr("Failed to autostart MCP Server: %d" % result)

@@ -75,6 +75,8 @@ func _on_start_button_pressed():
 	if websocket_server:
 		var result = websocket_server.start_server()
 		if result == OK:
+			# Update the port input to reflect the actual port used
+			port_input.value = websocket_server.get_port()
 			_log_message("Server started on port " + str(websocket_server.get_port()))
 		else:
 			_log_message("Failed to start server: " + str(result))

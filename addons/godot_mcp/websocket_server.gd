@@ -50,15 +50,31 @@ func start_server() -> int:
 	if is_server_active():
 		return ERR_ALREADY_IN_USE
 
-	# Configure TCP server
-	var err = tcp_server.listen(_port, "127.0.0.1")
-	if err == OK:
-		set_process(true)
-		print("MCP WebSocket server started on port %d" % _port)
-	else:
-		print("Failed to start MCP WebSocket server: %d" % err)
-
-	return err
+	# Try to find an available port, starting from the configured port
+	var current_port = _port
+	var max_attempts = 100
+	var attempt = 0
+	
+	while attempt < max_attempts:
+		var err = tcp_server.listen(current_port, "127.0.0.1")
+		if err == OK:
+			# Update the port to reflect the actual port we're using
+			_port = current_port
+			set_process(true)
+			print("MCP WebSocket server started on port %d" % _port)
+			return OK
+		elif err == ERR_ALREADY_IN_USE:
+			# Port is in use, try the next one
+			current_port += 1
+			attempt += 1
+		else:
+			# Some other error occurred
+			print("Failed to start MCP WebSocket server: %d" % err)
+			return err
+	
+	# If we get here, we couldn't find an available port
+	print("Failed to start MCP WebSocket server: no available ports found after %d attempts" % max_attempts)
+	return ERR_CANT_CONNECT
 
 
 func stop_server() -> void:
