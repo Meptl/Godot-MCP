@@ -3,6 +3,7 @@ import { nodeTools } from './tools/node_tools.js';
 import { sceneTools } from './tools/scene_tools.js';
 import { editorTools } from './tools/editor_tools.js';
 import { getGodotConnection } from './utils/godot_connection.js';
+import { createServer } from 'http';
 
 // Import resources
 import { 
@@ -26,6 +27,31 @@ import {
 } from './resources/editor_resources.js';
 
 /**
+ * Find an available port starting from the given port
+ */
+async function findAvailablePort(startPort: number): Promise<number> {
+  const isPortAvailable = (port: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const server = createServer();
+      server.listen(port, () => {
+        server.close(() => resolve(true));
+      });
+      server.on('error', () => resolve(false));
+    });
+  };
+
+  let port = startPort;
+  while (port <= startPort + 100) { // Try up to 100 ports
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+    port++;
+  }
+  
+  throw new Error(`No available ports found in range ${startPort} to ${startPort + 100}`);
+}
+
+/**
  * Parse command line arguments
  */
 function parseArgs(): { useHttp: boolean; port: number; godotPort: number } {
@@ -45,7 +71,7 @@ function parseArgs(): { useHttp: boolean; port: number; godotPort: number } {
 async function main() {
   const { useHttp, port, godotPort } = parseArgs();
   
-  console.error(`Starting Enhanced Godot MCP server in ${useHttp ? 'HTTP' : 'stdio'} mode...`);
+  console.error(`Starting Godot MCP server in ${useHttp ? 'HTTP' : 'stdio'} mode...`);
 
   // Create FastMCP instance
   const server = new FastMCP({
@@ -85,20 +111,30 @@ async function main() {
 
   // Start the server
   if (useHttp) {
-    server.start({
-      transportType: 'httpStream',
-      httpStream: {
-        endpoint: '/',
-        port: port
+    try {
+      const availablePort = await findAvailablePort(port);
+      if (availablePort !== port) {
+        console.error(`Port ${port} is in use, using port ${availablePort} instead`);
       }
-    });
-    console.error(`Enhanced Godot MCP server started on HTTP port ${port}`);
-    console.error(`MCP endpoint available at: http://localhost:${port}/`);
+      
+      server.start({
+        transportType: 'httpStream',
+        httpStream: {
+          endpoint: '/',
+          port: availablePort
+        }
+      });
+      console.error(`Godot MCP server started on HTTP port ${availablePort}`);
+      console.error(`MCP endpoint available at: http://localhost:${availablePort}/`);
+    } catch (error) {
+      console.error('Failed to find available port:', error);
+      process.exit(1);
+    }
   } else {
     server.start({
       transportType: 'stdio',
     });
-    console.error('Enhanced Godot MCP server started with stdio transport');
+    console.error('Godot MCP server started with stdio transport');
   }
 
   console.error('Ready to process commands from Claude or other AI assistants');
@@ -106,7 +142,7 @@ async function main() {
 
   // Handle cleanup
   const cleanup = () => {
-    console.error('Shutting down Enhanced Godot MCP server...');
+    console.error('Shutting down Godot MCP server...');
     const godot = getGodotConnection(godotPort);
     godot.disconnect();
     process.exit(0);
