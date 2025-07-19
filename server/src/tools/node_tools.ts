@@ -29,6 +29,11 @@ interface ListNodesParams {
   parent_path: string;
 }
 
+interface UpdateNodePropertiesParams {
+  node_path: string;
+  properties: Record<string, any>;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -104,6 +109,32 @@ export const nodeTools: MCPTool[] = [
         return `Updated property "${property}" of node at ${node_path} to ${JSON.stringify(value)}`;
       } catch (error) {
         throw new Error(`Failed to update node property: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'update_node_properties',
+    description: 'Update multiple properties of a node in the Godot scene tree at once',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node to update (e.g. "/root/MainScene/Player")'),
+      properties: z.record(z.any())
+        .describe('Object containing property names and their new values'),
+    }),
+    execute: async ({ node_path, properties }: UpdateNodePropertiesParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('update_node_properties', {
+          node_path,
+          properties,
+        });
+        
+        const propertyList = Object.keys(properties).join(', ');
+        return `Updated properties [${propertyList}] of node at ${node_path}`;
+      } catch (error) {
+        throw new Error(`Failed to update node properties: ${(error as Error).message}`);
       }
     },
   },

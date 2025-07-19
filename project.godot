@@ -11,13 +11,17 @@ config_version=5
 [application]
 
 config/name="Godot MCP"
-run/main_scene="uid://cj6x3fv3tu00f"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+
+[mcp]
+
+server/autostart_enabled=true
 
 [rendering]
 
