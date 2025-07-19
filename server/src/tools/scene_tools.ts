@@ -161,4 +161,24 @@ export const sceneTools: MCPTool[] = [
       }
     },
   },
+
+  {
+    name: 'get_scene_tree',
+    description: 'Get the complete scene tree structure of a scene file',
+    parameters: z.object({
+      path: z.string()
+        .describe('Path to the scene file (e.g. "res://scenes/main.tscn")'),
+    }),
+    execute: async ({ path }: { path: string }): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('get_scene_tree', { path });
+        
+        return `Scene: ${result.scene_path}\n\nScene Tree:\n${JSON.stringify(result.tree, null, 2)}`;
+      } catch (error) {
+        throw new Error(`Failed to get scene tree: ${(error as Error).message}`);
+      }
+    },
+  },
 ];

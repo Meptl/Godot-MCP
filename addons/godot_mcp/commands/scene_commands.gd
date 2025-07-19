@@ -19,6 +19,9 @@ func process_command(client_id: int, command_type: String, params: Dictionary, c
 		"create_scene":
 			_create_scene(client_id, params, command_id)
 			return true
+		"get_scene_tree":
+			_get_scene_tree(client_id, params, command_id)
+			return true
 	return false  # Command not handled
 
 func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void:
@@ -283,4 +286,39 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	_send_success(client_id, {
 		"scene_path": path,
 		"root_node_type": root_node_type
+	}, command_id)
+
+func _get_scene_tree(client_id: int, params: Dictionary, command_id: String) -> void:
+	var path = params.get("path", "")
+	
+	# Validation
+	if path.is_empty():
+		return _send_error(client_id, "Scene path cannot be empty", command_id)
+	
+	if not path.begins_with("res://"):
+		path = "res://" + path
+	
+	if not FileAccess.file_exists(path):
+		return _send_error(client_id, "Scene file not found: " + path, command_id)
+	
+	# Load the scene to analyze its structure
+	var packed_scene = load(path)
+	if not packed_scene:
+		return _send_error(client_id, "Failed to load scene: " + path, command_id)
+	
+	# Create a temporary instance to analyze
+	var scene_instance = packed_scene.instantiate()
+	if not scene_instance:
+		return _send_error(client_id, "Failed to instantiate scene: " + path, command_id)
+	
+	# Get the scene tree structure
+	var tree_structure = _get_node_structure(scene_instance)
+	
+	# Clean up the temporary instance
+	scene_instance.queue_free()
+	
+	# Return the structure
+	_send_success(client_id, {
+		"scene_path": path,
+		"tree": tree_structure
 	}, command_id)
