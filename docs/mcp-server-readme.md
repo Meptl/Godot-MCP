@@ -101,7 +101,6 @@ The server provides the following tools to Claude:
 - **create_node**: Create a new node in the scene tree
 - **delete_node**: Remove a node from the scene tree
 - **update_node**: Update node properties
-- **list_nodes**: Get a list of nodes in the scene
 
 ### Script Management
 

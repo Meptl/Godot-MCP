@@ -65,9 +65,6 @@ func process_command(
 		"get_node_properties":
 			_get_node_properties(client_id, params, command_id)
 			return true
-		"list_nodes":
-			_list_nodes(client_id, params, command_id)
-			return true
 		"update_node_properties":
 			_update_node_properties(client_id, params, command_id)
 			return true
@@ -290,26 +287,6 @@ func _get_node_properties(client_id: int, params: Dictionary, command_id: String
 	_send_success(client_id, {"node_path": node_path, "properties": properties}, command_id)
 
 
-func _list_nodes(client_id: int, params: Dictionary, command_id: String) -> void:
-	var parent_path = params.get("parent_path", "/root")
-
-	# Get the parent node
-	var parent = _get_editor_node(parent_path)
-	if not parent:
-		return _send_error(client_id, "Parent node not found: %s" % parent_path, command_id)
-
-	# Get children
-	var children = []
-	for child in parent.get_children():
-		children.append(
-			{
-				"name": child.name,
-				"type": child.get_class(),
-				"path": str(child.get_path()).replace(str(parent.get_path()), parent_path)
-			}
-		)
-
-	_send_success(client_id, {"parent_path": parent_path, "children": children}, command_id)
 
 
 func _attach_script(client_id: int, params: Dictionary, command_id: String) -> void:

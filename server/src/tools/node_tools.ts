@@ -25,9 +25,6 @@ interface GetNodePropertiesParams {
   node_path: string;
 }
 
-interface ListNodesParams {
-  parent_path: string;
-}
 
 interface UpdateNodePropertiesParams {
   node_path: string;
@@ -180,34 +177,6 @@ export const nodeTools: MCPTool[] = [
     },
   },
 
-  {
-    name: 'list_nodes',
-    description: 'List all child nodes under a parent node in the Godot scene tree',
-    parameters: z.object({
-      parent_path: z.string()
-        .describe('Path to the parent node (e.g. "/root", "/root/MainScene")'),
-    }),
-    execute: async ({ parent_path }: ListNodesParams): Promise<string> => {
-      const godot = getGodotConnection();
-      
-      try {
-        const result = await godot.sendCommand<CommandResult>('list_nodes', { parent_path });
-        
-        if (result.children.length === 0) {
-          return `No child nodes found under ${parent_path}`;
-        }
-        
-        // Format children for display
-        const formattedChildren = result.children
-          .map((child: any) => `${child.name} (${child.type}) - ${child.path}`)
-          .join('\n');
-        
-        return `Children of node at ${parent_path}:\n\n${formattedChildren}`;
-      } catch (error) {
-        throw new Error(`Failed to list nodes: ${(error as Error).message}`);
-      }
-    },
-  },
 
   {
     name: 'attach_script',

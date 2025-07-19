@@ -89,16 +89,6 @@ The addon supports the following commands:
   }
   ```
 
-- **list_nodes**: Get a list of nodes in the scene tree
-  ```json
-  {
-    "type": "list_nodes",
-    "params": {
-      "parent_path": "/root",
-      "recursive": true
-    }
-  }
-  ```
 
 ### Script Commands
 

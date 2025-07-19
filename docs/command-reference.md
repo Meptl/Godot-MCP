@@ -52,16 +52,6 @@ Get all properties of a node.
 Show me all the properties of the node at "/root/MainScene/Player".
 ```
 
-### list_nodes
-List all child nodes under a parent node.
-
-**Parameters:**
-- `parent_path` - Path to the parent node
-
-**Example:**
-```
-List all nodes under "/root/MainScene/UI".
-```
 
 ## Script Tools
 
