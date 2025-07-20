@@ -116,21 +116,6 @@ The addon supports the following commands:
   ```
 
 
-### Resource Commands
-
-- **create_resource**: Create a new resource
-  ```json
-  {
-    "type": "create_resource",
-    "params": {
-      "resource_type": "ShaderMaterial",
-      "resource_path": "res://materials/new_material.tres",
-      "properties": {
-        "shader_parameter/color": [1, 0, 0, 1]
-      }
-    }
-  }
-  ```
 
 - **list_resources**: List available resources
   ```json

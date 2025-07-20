@@ -18,11 +18,6 @@ interface CreateSceneParams {
   root_node_type?: string;
 }
 
-interface CreateResourceParams {
-  resource_type: string;
-  resource_path: string;
-  properties?: Record<string, any>;
-}
 
 /**
  * Definition for scene tools - operations that manipulate Godot scenes
@@ -134,33 +129,6 @@ export const sceneTools: MCPTool[] = [
     },
   },
 
-  {
-    name: 'create_resource',
-    description: 'Create a new resource in the project',
-    parameters: z.object({
-      resource_type: z.string()
-        .describe('Type of resource to create (e.g. "ImageTexture", "AudioStreamMP3", "StyleBoxFlat")'),
-      resource_path: z.string()
-        .describe('Path where the resource will be saved (e.g. "res://resources/style.tres")'),
-      properties: z.record(z.any()).optional()
-        .describe('Dictionary of property values to set on the resource'),
-    }),
-    execute: async ({ resource_type, resource_path, properties = {} }: CreateResourceParams): Promise<string> => {
-      const godot = getGodotConnection();
-      
-      try {
-        const result = await godot.sendCommand<CommandResult>('create_resource', {
-          resource_type,
-          resource_path,
-          properties,
-        });
-        
-        return `Created ${resource_type} resource at ${result.resource_path}`;
-      } catch (error) {
-        throw new Error(`Failed to create resource: ${(error as Error).message}`);
-      }
-    },
-  },
 
   {
     name: 'get_scene_tree',

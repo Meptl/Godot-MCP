@@ -19,11 +19,6 @@ import {
   projectSettingsResource,
   projectResourcesResource 
 } from './resources/project_resources.js';
-import { 
-  editorStateResource,
-  selectedNodeResource,
-  currentScriptResource 
-} from './resources/editor_resources.js';
 
 /**
  * Find an available port starting from the given port
@@ -90,9 +85,6 @@ async function main() {
   server.addResource(projectStructureResource);
   server.addResource(projectSettingsResource);
   server.addResource(projectResourcesResource);
-  server.addResource(editorStateResource);
-  server.addResource(selectedNodeResource);
-  server.addResource(currentScriptResource);
   server.addResource(sceneStructureResource);
   server.addResource(scriptMetadataResource);
 

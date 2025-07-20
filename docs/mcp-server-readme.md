@@ -109,7 +109,6 @@ The server provides the following tools to Claude:
 
 ### Resource Management
 
-- **create_resource**: Create a new resource
 - **list_resources**: List resources in a directory
 
 ### Scene Management

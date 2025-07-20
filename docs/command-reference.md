@@ -162,19 +162,6 @@ Get information about the current Godot project.
 Tell me about the current project.
 ```
 
-### create_resource
-Create a new resource in the project.
-
-**Parameters:**
-- `resource_type` - Type of resource to create
-- `resource_path` - Path where the resource will be saved
-- `properties` (optional) - Dictionary of property values to set on the resource
-
-**Example:**
-```
-Create a StyleBoxFlat resource at "res://resources/button_style.tres" with a blue background color.
-```
-
 ## Using Commands with Claude
 
 When working with Claude, you don't need to specify the exact command name or format. Instead, describe what you want to do in natural language, and Claude will use the appropriate command. For example:
