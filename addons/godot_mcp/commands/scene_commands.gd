@@ -13,9 +13,6 @@ func process_command(client_id: int, command_type: String, params: Dictionary, c
 		"get_current_scene":
 			_get_current_scene(client_id, params, command_id)
 			return true
-		"get_scene_structure":
-			_get_scene_structure(client_id, params, command_id)
-			return true
 		"create_scene":
 			_create_scene(client_id, params, command_id)
 			return true
@@ -129,83 +126,6 @@ func _get_current_scene(client_id: int, _params: Dictionary, command_id: String)
 		"root_node_name": edited_scene_root.name
 	}, command_id)
 
-func _get_scene_structure(client_id: int, params: Dictionary, command_id: String) -> void:
-	var path = params.get("path", "")
-	
-	# Validation
-	if path.is_empty():
-		return _send_error(client_id, "Scene path cannot be empty", command_id)
-	
-	if not path.begins_with("res://"):
-		path = "res://" + path
-	
-	if not FileAccess.file_exists(path):
-		return _send_error(client_id, "Scene file not found: " + path, command_id)
-	
-	# Load the scene to analyze its structure
-	var packed_scene = load(path)
-	if not packed_scene:
-		return _send_error(client_id, "Failed to load scene: " + path, command_id)
-	
-	# Create a temporary instance to analyze
-	var scene_instance = packed_scene.instantiate()
-	if not scene_instance:
-		return _send_error(client_id, "Failed to instantiate scene: " + path, command_id)
-	
-	# Get the scene structure
-	var structure = _get_node_structure(scene_instance)
-	
-	# Clean up the temporary instance
-	scene_instance.queue_free()
-	
-	# Return the structure
-	_send_success(client_id, {
-		"path": path,
-		"structure": structure
-	}, command_id)
-
-func _get_node_structure(node: Node) -> Dictionary:
-	var structure = {
-		"name": node.name,
-		"type": node.get_class(),
-		"path": node.get_path()
-	}
-	
-	# Get script information
-	var script = node.get_script()
-	if script:
-		structure["script"] = script.resource_path
-	
-	# Get important properties
-	var properties = {}
-	var property_list = node.get_property_list()
-	
-	for prop in property_list:
-		var name = prop["name"]
-		# Filter to include only the most useful properties
-		if not name.begins_with("_") and name not in ["script", "children", "position", "rotation", "scale"]:
-			continue
-		
-		# Skip properties that are default values
-		if name == "position" and node.position == Vector2():
-			continue
-		if name == "rotation" and node.rotation == 0:
-			continue
-		if name == "scale" and node.scale == Vector2(1, 1):
-			continue
-		
-		properties[name] = node.get(name)
-	
-	structure["properties"] = properties
-	
-	# Get children
-	var children = []
-	for child in node.get_children():
-		children.append(_get_node_structure(child))
-	
-	structure["children"] = children
-	
-	return structure
 
 func _create_scene(client_id: int, params: Dictionary, command_id: String) -> void:
 	var path = params.get("path", "")
@@ -311,8 +231,9 @@ func _get_scene_tree(client_id: int, params: Dictionary, command_id: String) -> 
 	if not scene_instance:
 		return _send_error(client_id, "Failed to instantiate scene: " + path, command_id)
 	
-	# Get the scene tree structure
-	var tree_structure = _get_node_structure(scene_instance)
+	# Build the tree structure output
+	var tree_output = "# Scene Tree: " + path + "\n\n"
+	tree_output += _build_tree_output(scene_instance, 0)
 	
 	# Clean up the temporary instance
 	scene_instance.queue_free()
@@ -320,5 +241,19 @@ func _get_scene_tree(client_id: int, params: Dictionary, command_id: String) -> 
 	# Return the structure
 	_send_success(client_id, {
 		"scene_path": path,
-		"tree": tree_structure
+		"tree": tree_output
 	}, command_id)
+
+func _build_tree_output(node: Node, depth: int) -> String:
+	# Note: LLMs were not properly reading whitespace-indented bullet points,
+	# so we use multiple dashes to represent the depth instead of proper markdown nesting
+	var bullets = ""
+	for i in depth + 1:
+		bullets += "- "
+	
+	var line = bullets + node.name + " (" + node.get_class() + ")\n"
+	
+	for child in node.get_children():
+		line += _build_tree_output(child, depth + 1)
+	
+	return line

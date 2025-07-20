@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://cj6x3fv3tu00f"]
+[gd_scene load_steps=2 format=3 uid="uid://cj6x3fv3tu00f"]
+
+[ext_resource type="Script" uid="uid://cpw08xqrv27ch" path="res://scenes/cube_pulse.gd" id="1_2gju5"]
 
 [node name="Node3D" type="Node3D"]
 
@@ -11,3 +13,4 @@ fov = 45.0
 
 [node name="Cube" type="CSGBox3D" parent="A test node"]
 size = Vector3(2, 2, 2)
+script = ExtResource("1_2gju5")
