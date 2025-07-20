@@ -67,15 +67,8 @@ func _enter_tree():
 	panel.websocket_server = websocket_server
 	add_control_to_bottom_panel(panel, "MCP Server")
 
-	# Initialize project settings if not present
-	_initialize_project_settings()
-
 	# Check for autostart
-	var autostart_enabled = ProjectSettings.get_setting(AUTOSTART_SETTING, false)
-	print("MCP Autostart enabled: ", autostart_enabled)
-
-	if autostart_enabled:
-		print("Attempting to autostart MCP Server...")
+	if ProjectSettings.get_setting(AUTOSTART_SETTING, false):
 		# Add a small delay to ensure everything is initialized
 		await get_tree().create_timer(0.1).timeout
 
@@ -122,12 +115,3 @@ func get_editor_interface():
 # Helper function for command processors to get undo/redo manager
 func get_undo_redo():
 	return get_undo_redo()
-
-
-func _initialize_project_settings():
-	# Initialize autostart setting
-	if not ProjectSettings.has_setting(AUTOSTART_SETTING):
-		ProjectSettings.set_setting(AUTOSTART_SETTING, false)
-
-	# Save the settings
-	ProjectSettings.save()

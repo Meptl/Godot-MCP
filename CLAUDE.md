@@ -7,9 +7,9 @@ It allows AI assistants to interface with Godot.
 
 The /server folder contains the node mcp server.
 
-The /addons/godot_mcp contains the Godot plugin that the mcp server interfaces with.
-This server opens a websocket that the mcp connects to and allows control of the
-Godot instance.
+The /addons/godot_mcp folder contains the Godot plugin that the mcp server
+interfaces with. This server opens a websocket that the mcp connects to and
+allows control of the Godot instance.
 
 See specific documentation in the /docs folder for more detail.
 
@@ -34,3 +34,4 @@ See specific documentation in the /docs folder for more detail.
 - Keep functions small and focused
 - Add comments for complex logic
 - Error handling: prefer try/catch in TS, use assertions in GDScript
+- Use context7 to retrieve Godot docs to verify any work involving the Godot API.
