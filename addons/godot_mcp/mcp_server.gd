@@ -11,26 +11,6 @@ signal client_connected(id)
 signal client_disconnected(id)
 signal command_received(client_id, command)
 
-class WebSocketClient:
-	var tcp: StreamPeerTCP
-	var id: int
-	var ws: WebSocketPeer
-	var state: int = -1 # -1: handshaking, 0: connected, 1: error/closed
-	var handshake_time: int
-	var last_poll_time: int
-	
-	func _init(p_tcp: StreamPeerTCP, p_id: int):
-		tcp = p_tcp
-		id = p_id
-		handshake_time = Time.get_ticks_msec()
-	
-	func upgrade_to_websocket() -> bool:
-		ws = WebSocketPeer.new()
-		var err = ws.accept_stream(tcp)
-		return err == OK
-
-var clients := {}
-var next_client_id := 1
 
 
 func _enter_tree():
