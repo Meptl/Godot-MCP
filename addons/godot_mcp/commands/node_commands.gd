@@ -96,20 +96,8 @@ func _create_node(client_id: int, params: Dictionary, command_id: String) -> voi
 	# Set the node name
 	node.name = node_name
 
-	if not undo_redo:
-		# Fallback method if we can't get undo/redo
-		parent.add_child(node)
-		node.owner = edited_scene_root
-		_mark_scene_modified()
-	else:
-		undo_redo.create_action("Create Node: " + node_name)
-		undo_redo.add_do_method(parent, "add_child", node)
-		undo_redo.add_do_property(node, "owner", edited_scene_root)
-		undo_redo.add_undo_method(parent, "remove_child", node)
-		undo_redo.add_undo_method(node, "queue_free")
-		undo_redo.commit_action()
-
-	# Mark the scene as modified
+	parent.add_child(node)
+	node.owner = edited_scene_root
 	_mark_scene_modified()
 
 	_send_success(client_id, {"node_path": parent_path + "/" + node_name}, command_id)
@@ -171,20 +159,7 @@ func _update_node_property(client_id: int, params: Dictionary, command_id: Strin
 	# Parse property value for Godot types
 	var parsed_value = _parse_property_value(property_value)
 
-	# Get current property value for undo
-	var old_value = node.get(property_name)
-
-	if not undo_redo:
-		# Fallback method if we can't get undo/redo
-		node.set(property_name, parsed_value)
-		_mark_scene_modified()
-	else:
-		undo_redo.create_action("Update Property: " + property_name)
-		undo_redo.add_do_property(node, property_name, parsed_value)
-		undo_redo.add_undo_property(node, property_name, old_value)
-		undo_redo.commit_action()
-
-	# Mark the scene as modified
+	node.set(property_name, parsed_value)
 	_mark_scene_modified()
 
 	_send_success(
@@ -219,26 +194,10 @@ func _update_node_properties(client_id: int, params: Dictionary, command_id: Str
 
 	var updated_properties = []
 
-	if not undo_redo:
-		# Fallback method if we can't get undo/redo
-		for property_name in properties:
-			var parsed_value = _parse_property_value(properties[property_name])
-			node.set(property_name, parsed_value)
-			updated_properties.append(property_name)
-		_mark_scene_modified()
-	else:
-		undo_redo.create_action("Update Multiple Properties")
-
-		for property_name in properties:
-			var parsed_value = _parse_property_value(properties[property_name])
-			var old_value = node.get(property_name)
-			undo_redo.add_do_property(node, property_name, parsed_value)
-			undo_redo.add_undo_property(node, property_name, old_value)
-			updated_properties.append(property_name)
-
-		undo_redo.commit_action()
-
-	# Mark the scene as modified
+	for property_name in properties:
+		var parsed_value = _parse_property_value(properties[property_name])
+		node.set(property_name, parsed_value)
+		updated_properties.append(property_name)
 	_mark_scene_modified()
 
 	_send_success(
@@ -311,17 +270,7 @@ func _attach_script(client_id: int, params: Dictionary, command_id: String) -> v
 	if not script:
 		return _send_error(client_id, "Failed to load script: %s" % script_path, command_id)
 
-	if not undo_redo:
-		# Fallback method if we can't get undo/redo
-		node.set_script(script)
-		_mark_scene_modified()
-	else:
-		undo_redo.create_action("Attach Script")
-		undo_redo.add_do_method(node, "set_script", script)
-		undo_redo.add_undo_method(node, "set_script", node.get_script())
-		undo_redo.commit_action()
-
-	# Mark the scene as modified
+	node.set_script(script)
 	_mark_scene_modified()
 
 	_send_success(client_id, {"script_path": script_path, "node_path": node_path}, command_id)
@@ -376,35 +325,14 @@ func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> v
 	if not old_parent:
 		return _send_error(client_id, "Node has no parent: %s" % node_path, command_id)
 
-	if not undo_redo:
-		# Fallback method if we can't get undo/redo
-		old_parent.remove_child(node)
-		if index >= 0 and index < new_parent.get_child_count():
-			new_parent.add_child(node)
-			new_parent.move_child(node, index)
-		else:
-			new_parent.add_child(node)
-		# Maintain ownership
-		node.owner = edited_scene_root
-		_mark_scene_modified()
+	old_parent.remove_child(node)
+	if index >= 0 and index < new_parent.get_child_count():
+		new_parent.add_child(node)
+		new_parent.move_child(node, index)
 	else:
-		undo_redo.create_action("Reparent Node")
-		undo_redo.add_do_method(old_parent, "remove_child", node)
-		if index >= 0 and index < new_parent.get_child_count():
-			undo_redo.add_do_method(new_parent, "add_child", node)
-			undo_redo.add_do_method(new_parent, "move_child", node, index)
-		else:
-			undo_redo.add_do_method(new_parent, "add_child", node)
-		undo_redo.add_do_property(node, "owner", edited_scene_root)
-		
-		# Undo operations
-		undo_redo.add_undo_method(new_parent, "remove_child", node)
-		undo_redo.add_undo_method(old_parent, "add_child", node)
-		undo_redo.add_undo_property(node, "owner", node.owner)
-		
-		undo_redo.commit_action()
-
-	# Mark the scene as modified
+		new_parent.add_child(node)
+	# Maintain ownership
+	node.owner = edited_scene_root
 	_mark_scene_modified()
 
 	_send_success(

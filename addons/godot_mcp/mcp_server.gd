@@ -34,8 +34,6 @@ func _enter_tree():
 		command_handler.name = "CommandHandler"
 		websocket_server.add_child(command_handler)
 
-		# Pass the UndoRedoManager to the command handler  
-		command_handler.setup_undo_redo(get_undo_redo())
 
 		# Connect signals
 		print("Connecting command handler signals...")

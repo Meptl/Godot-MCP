@@ -7,8 +7,6 @@ signal command_completed(client_id, command_type, result, command_id)
 
 # Reference to the server - passed by the command handler
 var _websocket_server = null
-# Reference to the undo/redo manager - passed by the command handler
-var undo_redo = null
 
 # Must be implemented by subclasses
 func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:

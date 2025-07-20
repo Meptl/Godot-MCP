@@ -69,7 +69,3 @@ func _send_error(client_id: int, message: String, command_id: String) -> void:
 	_websocket_server.send_response(client_id, response)
 	print("Error: %s" % message)
 
-func setup_undo_redo(undo_redo_manager):
-	# Set undo/redo manager for all processors
-	for processor in _command_processors:
-		processor.undo_redo = undo_redo_manager
