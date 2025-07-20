@@ -29,8 +29,7 @@ func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	if not plugin:
 		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
 	
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	# If no path provided, use the current scene path
 	if path.is_empty() and edited_scene_root:
@@ -84,14 +83,10 @@ func _open_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	# we need to defer to the plugin which has access to EditorInterface
 	var plugin = Engine.get_meta("GodotMCPPlugin") if Engine.has_meta("GodotMCPPlugin") else null
 	
-	if plugin and plugin.has_method("get_editor_interface"):
-		var editor_interface = plugin.get_editor_interface()
-		editor_interface.open_scene_from_path(path)
-		_send_success(client_id, {
-			"scene_path": path
-		}, command_id)
-	else:
-		_send_error(client_id, "Cannot access EditorInterface. Please open the scene manually: %s" % path, command_id)
+	EditorInterface.open_scene_from_path(path)
+	_send_success(client_id, {
+		"scene_path": path
+	}, command_id)
 
 func _get_current_scene(client_id: int, _params: Dictionary, command_id: String) -> void:
 	# Get editor plugin and interfaces
@@ -99,8 +94,7 @@ func _get_current_scene(client_id: int, _params: Dictionary, command_id: String)
 	if not plugin:
 		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
 	
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
 		print("No scene is currently being edited")
@@ -199,9 +193,7 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	
 	# Try to open the scene in the editor
 	var plugin = Engine.get_meta("GodotMCPPlugin") if Engine.has_meta("GodotMCPPlugin") else null
-	if plugin and plugin.has_method("get_editor_interface"):
-		var editor_interface = plugin.get_editor_interface()
-		editor_interface.open_scene_from_path(path)
+	EditorInterface.open_scene_from_path(path)
 	
 	_send_success(client_id, {
 		"scene_path": path,
@@ -214,8 +206,7 @@ func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) ->
 	if not plugin:
 		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
 	
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
 		return _send_error(client_id, "No scene is currently being edited", command_id)

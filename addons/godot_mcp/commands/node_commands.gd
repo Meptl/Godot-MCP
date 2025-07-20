@@ -17,8 +17,7 @@ func _validate_and_get_edited_scene(client_id: int, command_id: String):
 	if not plugin:
 		return null
 
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 
 	if not edited_scene_root:
 		_send_error(client_id, "No scene is currently being edited", command_id)

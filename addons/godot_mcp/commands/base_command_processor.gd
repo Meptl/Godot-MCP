@@ -55,8 +55,7 @@ func _get_editor_node(path: String) -> Node:
 		print("GodotMCPPlugin not found in Engine metadata")
 		return null
 		
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
 		print("No edited scene found")
@@ -81,12 +80,11 @@ func _mark_scene_modified() -> void:
 		print("GodotMCPPlugin not found in Engine metadata")
 		return
 	
-	var editor_interface = plugin.get_editor_interface()
-	var edited_scene_root = editor_interface.get_edited_scene_root()
+	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if edited_scene_root:
 		# This internally marks the scene as modified in the editor
-		editor_interface.mark_scene_as_unsaved()
+		EditorInterface.mark_scene_as_unsaved()
 
 # Helper function to access the EditorUndoRedoManager
 func _get_undo_redo():

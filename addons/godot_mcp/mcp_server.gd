@@ -87,10 +87,6 @@ func _exit_tree():
 	print("=== MCP SERVER SHUTDOWN ===")
 
 
-# Helper function for command processors to access EditorInterface
-func get_editor_interface():
-	return get_editor_interface()
-
 
 # Helper function for command processors to get undo/redo manager
 func get_undo_redo():
