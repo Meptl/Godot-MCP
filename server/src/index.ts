@@ -11,7 +11,6 @@ import {
   sceneStructureResource 
 } from './resources/scene_resources.js';
 import { 
-  scriptResource, 
   scriptListResource,
   scriptMetadataResource 
 } from './resources/script_resources.js';
@@ -95,7 +94,6 @@ async function main() {
   server.addResource(selectedNodeResource);
   server.addResource(currentScriptResource);
   server.addResource(sceneStructureResource);
-  server.addResource(scriptResource);
   server.addResource(scriptMetadataResource);
 
   // Try to connect to Godot and start continuous reconnection

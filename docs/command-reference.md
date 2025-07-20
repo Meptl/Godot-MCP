@@ -80,17 +80,6 @@ Edit an existing GDScript file.
 Update the script at "res://scripts/player_controller.gd" to add a jump function.
 ```
 
-### get_script
-Get the content of a GDScript file.
-
-**Parameters:**
-- `script_path` (optional) - Path to the script file
-- `node_path` (optional) - Path to a node with a script attached
-
-**Example:**
-```
-Show me the script attached to the node at "/root/MainScene/Player".
-```
 
 ### create_script_template
 Generate a GDScript template with common boilerplate.

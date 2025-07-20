@@ -106,7 +106,6 @@ The server provides the following tools to Claude:
 
 - **create_script**: Create a new GDScript file
 - **edit_script**: Modify an existing script
-- **get_script**: Get a script's content
 
 ### Resource Management
 

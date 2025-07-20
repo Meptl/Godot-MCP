@@ -115,15 +115,6 @@ The addon supports the following commands:
   }
   ```
 
-- **get_script**: Retrieve a script's content
-  ```json
-  {
-    "type": "get_script",
-    "params": {
-      "script_path": "res://scripts/new_script.gd"
-    }
-  }
-  ```
 
 ### Resource Commands
 

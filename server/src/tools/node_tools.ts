@@ -36,10 +36,6 @@ interface AttachScriptParams {
   script_path: string;
 }
 
-interface GetScriptParams {
-  script_path?: string;
-  node_path?: string;
-}
 
 interface ReparentNodeParams {
   node_path: string;
@@ -203,32 +199,6 @@ export const nodeTools: MCPTool[] = [
     },
   },
 
-  {
-    name: 'get_script',
-    description: 'Get the content of a script file or from a node with an attached script',
-    parameters: z.object({
-      script_path: z.string().optional()
-        .describe('Path to the script file (e.g. "res://scripts/player.gd")'),
-      node_path: z.string().optional()
-        .describe('Path to a node with a script attached'),
-    }).refine(data => data.script_path !== undefined || data.node_path !== undefined, {
-      message: "Either script_path or node_path must be provided",
-    }),
-    execute: async ({ script_path, node_path }: GetScriptParams): Promise<string> => {
-      const godot = getGodotConnection();
-      
-      try {
-        const result = await godot.sendCommand<CommandResult>('get_script', {
-          script_path,
-          node_path,
-        });
-        
-        return `Script at ${result.script_path}:\n\n\`\`\`gdscript\n${result.content}\n\`\`\``;
-      } catch (error) {
-        throw new Error(`Failed to get script: ${(error as Error).message}`);
-      }
-    },
-  },
 
   {
     name: 'reparent_node',

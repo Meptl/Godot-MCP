@@ -2,40 +2,6 @@ import { Resource, ResourceTemplate } from 'fastmcp';
 import { getGodotConnection } from '../utils/godot_connection.js';
 import { z } from 'zod';
 
-/**
- * Resource that provides the content of a specific script
- * Note: As a Resource (not ResourceTemplate), it cannot handle dynamic paths
- */
-export const scriptResource: Resource = {
-    uri: 'godot/script',
-    name: 'Godot Script Content',
-    mimeType: 'text/plain',
-    async load() {
-        const godot = getGodotConnection();
-        
-        try {
-            // Without parameters, this can only load a predefined script
-            // You would need to hardcode the script path here
-            const scriptPath = 'res://default_script.gd';
-            
-            const result = await godot.sendCommand('get_script', {
-                path: scriptPath
-            });
-            
-            return {
-                text: result.content,
-                metadata: {
-                    path: result.script_path,
-                    language: scriptPath.endsWith('.gd') ? 'gdscript' : 
-                                     scriptPath.endsWith('.cs') ? 'csharp' : 'unknown'
-                }
-            };
-        } catch (error) {
-            console.error('Error fetching script content:', error);
-            throw error;
-        }
-    }
-};
 
 /**
  * Resource that provides a list of all scripts in the project
