@@ -37,9 +37,7 @@ export class GodotConnection {
 
   constructor(
     private url: string = 'ws://localhost:9080',
-    private timeout: number = 20000,
-    private initialRetryDelay: number = 2000,
-    private maxRetryDelay: number = 30000
+    private timeout: number = 20000
   ) {
     console.error('GodotConnection created with URL:', this.url);
   }
@@ -163,13 +161,8 @@ export class GodotConnection {
       clearTimeout(this.retryTimer);
     }
     
-    // Use exponential backoff with jitter, capped at maxRetryDelay
-    const delay = Math.min(
-      this.initialRetryDelay + Math.random() * 1000,
-      this.maxRetryDelay
-    );
-    
-    console.error(`Scheduling reconnection attempt in ${Math.round(delay)}ms...`);
+    // Fixed 2-second retry interval
+    const delay = 2000;
     
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;
