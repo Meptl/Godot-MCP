@@ -7,6 +7,8 @@ signal command_completed(client_id, command_type, result, command_id)
 
 # Reference to the server - passed by the command handler
 var _websocket_server = null
+# Reference to the undo/redo manager - passed by the command handler
+var undo_redo = null
 
 # Must be implemented by subclasses
 func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:
@@ -50,11 +52,6 @@ func _send_error(client_id: int, message: String, command_id: String) -> void:
 
 # Common utility methods
 func _get_editor_node(path: String) -> Node:
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		print("GodotMCPPlugin not found in Engine metadata")
-		return null
-		
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
@@ -75,25 +72,12 @@ func _get_editor_node(path: String) -> Node:
 
 # Helper function to mark a scene as modified
 func _mark_scene_modified() -> void:
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		print("GodotMCPPlugin not found in Engine metadata")
-		return
-	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if edited_scene_root:
 		# This internally marks the scene as modified in the editor
 		EditorInterface.mark_scene_as_unsaved()
 
-# Helper function to access the EditorUndoRedoManager
-func _get_undo_redo():
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin or not plugin.has_method("get_undo_redo"):
-		print("Cannot access UndoRedo from plugin")
-		return null
-		
-	return plugin.get_undo_redo()
 
 # Helper function to parse property values from string to proper Godot types
 func _parse_property_value(value):

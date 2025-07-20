@@ -29,6 +29,7 @@ func _initialize_command_processors():
 	project_commands._websocket_server = _websocket_server
 	editor_script_commands._websocket_server = _websocket_server
 	
+	
 	# Add them to our processor list
 	_command_processors.append(node_commands)
 	_command_processors.append(scene_commands)
@@ -67,3 +68,8 @@ func _send_error(client_id: int, message: String, command_id: String) -> void:
 	
 	_websocket_server.send_response(client_id, response)
 	print("Error: %s" % message)
+
+func setup_undo_redo(undo_redo_manager):
+	# Set undo/redo manager for all processors
+	for processor in _command_processors:
+		processor.undo_redo = undo_redo_manager

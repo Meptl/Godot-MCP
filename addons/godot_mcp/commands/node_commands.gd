@@ -4,19 +4,7 @@ extends MCPBaseCommandProcessor
 
 
 # Common validation and setup helpers
-func _validate_and_get_plugin(client_id: int, command_id: String):
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		_send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
-		return null
-	return plugin
-
-
 func _validate_and_get_edited_scene(client_id: int, command_id: String):
-	var plugin = _validate_and_get_plugin(client_id, command_id)
-	if not plugin:
-		return null
-
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 
 	if not edited_scene_root:
@@ -179,14 +167,11 @@ func _update_node_property(client_id: int, params: Dictionary, command_id: Strin
 	# Get current property value for undo
 	var old_value = node.get(property_name)
 
-	# Get undo/redo system
-	var undo_redo = _get_undo_redo()
 	if not undo_redo:
 		# Fallback method if we can't get undo/redo
 		node.set(property_name, parsed_value)
 		_mark_scene_modified()
 	else:
-		# Use undo/redo for proper editor integration
 		undo_redo.create_action("Update Property: " + property_name)
 		undo_redo.add_do_property(node, property_name, parsed_value)
 		undo_redo.add_undo_property(node, property_name, old_value)
@@ -225,8 +210,6 @@ func _update_node_properties(client_id: int, params: Dictionary, command_id: Str
 		if not _validate_property_exists(node, property_name, client_id, command_id):
 			return
 
-	# Get undo/redo system
-	var undo_redo = _get_undo_redo()
 	var updated_properties = []
 
 	if not undo_redo:
@@ -237,7 +220,6 @@ func _update_node_properties(client_id: int, params: Dictionary, command_id: Str
 			updated_properties.append(property_name)
 		_mark_scene_modified()
 	else:
-		# Use undo/redo for proper editor integration
 		undo_redo.create_action("Update Multiple Properties")
 
 		for property_name in properties:
@@ -322,14 +304,11 @@ func _attach_script(client_id: int, params: Dictionary, command_id: String) -> v
 	if not script:
 		return _send_error(client_id, "Failed to load script: %s" % script_path, command_id)
 
-	# Use undo/redo for script assignment
-	var undo_redo = _get_undo_redo()
 	if not undo_redo:
 		# Fallback method if we can't get undo/redo
 		node.set_script(script)
 		_mark_scene_modified()
 	else:
-		# Use undo/redo for proper editor integration
 		undo_redo.create_action("Attach Script")
 		undo_redo.add_do_method(node, "set_script", script)
 		undo_redo.add_undo_method(node, "set_script", node.get_script())
@@ -390,8 +369,6 @@ func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> v
 	if not old_parent:
 		return _send_error(client_id, "Node has no parent: %s" % node_path, command_id)
 
-	# Use undo/redo for proper editor integration
-	var undo_redo = _get_undo_redo()
 	if not undo_redo:
 		# Fallback method if we can't get undo/redo
 		old_parent.remove_child(node)
@@ -404,7 +381,6 @@ func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> v
 		node.owner = edited_scene_root
 		_mark_scene_modified()
 	else:
-		# Use undo/redo for proper editor integration
 		undo_redo.create_action("Reparent Node")
 		undo_redo.add_do_method(old_parent, "remove_child", node)
 		if index >= 0 and index < new_parent.get_child_count():

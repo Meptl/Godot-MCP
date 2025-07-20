@@ -14,8 +14,6 @@ signal command_received(client_id, command)
 
 
 func _enter_tree():
-	# Store plugin instance for EditorInterface access
-	Engine.set_meta("GodotMCPPlugin", self)
 
 	print("\n=== MCP SERVER STARTING ===")
 
@@ -35,6 +33,9 @@ func _enter_tree():
 		command_handler.set_script(handler_script)
 		command_handler.name = "CommandHandler"
 		websocket_server.add_child(command_handler)
+
+		# Pass the UndoRedoManager to the command handler  
+		command_handler.setup_undo_redo(get_undo_redo())
 
 		# Connect signals
 		print("Connecting command handler signals...")
@@ -68,9 +69,6 @@ func _enter_tree():
 
 
 func _exit_tree():
-	# Remove plugin instance from Engine metadata
-	if Engine.has_meta("GodotMCPPlugin"):
-		Engine.remove_meta("GodotMCPPlugin")
 
 	# Clean up the panel
 	if panel:
@@ -88,6 +86,3 @@ func _exit_tree():
 
 
 
-# Helper function for command processors to get undo/redo manager
-func get_undo_redo():
-	return get_undo_redo()

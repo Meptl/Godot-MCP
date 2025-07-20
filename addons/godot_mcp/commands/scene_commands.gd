@@ -24,11 +24,6 @@ func process_command(client_id: int, command_type: String, params: Dictionary, c
 func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void:
 	var path = params.get("path", "")
 	
-	# Get editor plugin and interfaces
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
-	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	# If no path provided, use the current scene path
@@ -79,21 +74,12 @@ func _open_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	if not FileAccess.file_exists(path):
 		return _send_error(client_id, "Scene file not found: %s" % path, command_id)
 	
-	# Since we can't directly open scenes in tool scripts,
-	# we need to defer to the plugin which has access to EditorInterface
-	var plugin = Engine.get_meta("GodotMCPPlugin") if Engine.has_meta("GodotMCPPlugin") else null
-	
 	EditorInterface.open_scene_from_path(path)
 	_send_success(client_id, {
 		"scene_path": path
 	}, command_id)
 
 func _get_current_scene(client_id: int, _params: Dictionary, command_id: String) -> void:
-	# Get editor plugin and interfaces
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
-	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
@@ -192,7 +178,6 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	root_node.free()
 	
 	# Try to open the scene in the editor
-	var plugin = Engine.get_meta("GodotMCPPlugin") if Engine.has_meta("GodotMCPPlugin") else null
 	EditorInterface.open_scene_from_path(path)
 	
 	_send_success(client_id, {
@@ -201,11 +186,6 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	}, command_id)
 
 func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) -> void:
-	# Get editor plugin and interfaces
-	var plugin = Engine.get_meta("GodotMCPPlugin")
-	if not plugin:
-		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
-	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
