@@ -96,11 +96,18 @@ func _create_node(client_id: int, params: Dictionary, command_id: String) -> voi
 	# Set the node name
 	node.name = node_name
 
-	# Add the node to the parent
-	parent.add_child(node)
-
-	# Set owner for proper serialization
-	node.owner = edited_scene_root
+	if not undo_redo:
+		# Fallback method if we can't get undo/redo
+		parent.add_child(node)
+		node.owner = edited_scene_root
+		_mark_scene_modified()
+	else:
+		undo_redo.create_action("Create Node: " + node_name)
+		undo_redo.add_do_method(parent, "add_child", node)
+		undo_redo.add_do_property(node, "owner", edited_scene_root)
+		undo_redo.add_undo_method(parent, "remove_child", node)
+		undo_redo.add_undo_method(node, "queue_free")
+		undo_redo.commit_action()
 
 	# Mark the scene as modified
 	_mark_scene_modified()
