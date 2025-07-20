@@ -208,39 +208,29 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 		"root_node_type": root_node_type
 	}, command_id)
 
-func _get_scene_tree(client_id: int, params: Dictionary, command_id: String) -> void:
-	var path = params.get("path", "")
+func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) -> void:
+	# Get editor plugin and interfaces
+	var plugin = Engine.get_meta("GodotMCPPlugin")
+	if not plugin:
+		return _send_error(client_id, "GodotMCPPlugin not found in Engine metadata", command_id)
 	
-	# Validation
-	if path.is_empty():
-		return _send_error(client_id, "Scene path cannot be empty", command_id)
+	var editor_interface = plugin.get_editor_interface()
+	var edited_scene_root = editor_interface.get_edited_scene_root()
 	
-	if not path.begins_with("res://"):
-		path = "res://" + path
+	if not edited_scene_root:
+		return _send_error(client_id, "No scene is currently being edited", command_id)
 	
-	if not FileAccess.file_exists(path):
-		return _send_error(client_id, "Scene file not found: " + path, command_id)
+	var scene_path = edited_scene_root.scene_file_path
+	if scene_path.is_empty():
+		scene_path = "Untitled"
 	
-	# Load the scene to analyze its structure
-	var packed_scene = load(path)
-	if not packed_scene:
-		return _send_error(client_id, "Failed to load scene: " + path, command_id)
-	
-	# Create a temporary instance to analyze
-	var scene_instance = packed_scene.instantiate()
-	if not scene_instance:
-		return _send_error(client_id, "Failed to instantiate scene: " + path, command_id)
-	
-	# Build the tree structure output
-	var tree_output = "# Scene Tree: " + path + "\n\n"
-	tree_output += _build_tree_output(scene_instance, 0)
-	
-	# Clean up the temporary instance
-	scene_instance.queue_free()
+	# Build the tree structure output using the current scene
+	var tree_output = "# Scene Tree: " + scene_path + "\n\n"
+	tree_output += _build_tree_output(edited_scene_root, 0)
 	
 	# Return the structure
 	_send_success(client_id, {
-		"scene_path": path,
+		"scene_path": scene_path,
 		"tree": tree_output
 	}, command_id)
 
