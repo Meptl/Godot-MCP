@@ -140,7 +140,7 @@ export const sceneTools: MCPTool[] = [
       try {
         const result = await godot.sendCommand<CommandResult>('get_scene_tree', {});
         
-        return `Scene: ${result.scene_path}\n\nScene Tree:\n${JSON.stringify(result.tree, null, 2)}`;
+        return `${JSON.stringify(result.tree, null, 2)}`;
       } catch (error) {
         throw new Error(`Failed to get scene tree: ${(error as Error).message}`);
       }

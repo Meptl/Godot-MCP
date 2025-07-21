@@ -48,25 +48,35 @@ func _send_error(client_id: int, message: String, command_id: String) -> void:
 		_websocket_server.send_response(client_id, response)
 	print("Error: %s" % message)
 
-# Common utility methods
+# We try to match the behaviour of get_node here which accomodates a magical
+# /root. As a nicety, support relative pathing from /root.
 func _get_editor_node(path: String) -> Node:
-	var edited_scene_root = EditorInterface.get_edited_scene_root()
-	
-	if not edited_scene_root:
+	var scene_root = EditorInterface.get_edited_scene_root()
+	if not scene_root:
 		print("No edited scene found")
 		return null
-		
-	# Handle absolute paths
-	if path == "/root" or path == "":
-		return edited_scene_root
-		
-	if path.begins_with("/root/"):
-		path = path.substr(6)  # Remove "/root/"
-	elif path.begins_with("/"):
-		path = path.substr(1)  # Remove leading "/"
-	
-	# Try to find node as child of edited scene root
-	return edited_scene_root.get_node_or_null(path)
+	print("NODE NAME: ", scene_root.name)
+
+	# Check special paths.
+	if path in ["/root", "/root/", "", "/root/" + scene_root.name]:
+		return scene_root
+
+	if not path.begins_with('/'):
+		# This is a relative path.
+		if not path.begins_with(scene_root.name):
+			# Don't search outside of scene.
+			return null
+		return scene_root.get_parent().get_node_or_null(path)
+
+	if not path.begins_with('/root/' + scene_root.name):
+		# Absolute paths _must_ start with /root/SceneRoot
+		return null
+
+	# Remove "/root/SceneRoot/"
+	var len = 6 + scene_root.name.length() + 1
+	print("Searching ", path.substr(len))
+	return scene_root.get_node_or_null(path.substr(len))
+
 
 # Helper function to mark a scene as modified
 func _mark_scene_modified() -> void:

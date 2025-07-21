@@ -195,9 +195,7 @@ func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) ->
 	if scene_path.is_empty():
 		scene_path = "Untitled"
 	
-	# Build the tree structure output using the current scene
-	var tree_output = "# Scene Tree: " + scene_path + "\n\n"
-	tree_output += _build_tree_output(edited_scene_root, 0)
+	var tree_output = _build_tree_output(edited_scene_root, 0)
 	
 	# Return the structure
 	_send_success(client_id, {

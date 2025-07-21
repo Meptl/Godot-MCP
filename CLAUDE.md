@@ -32,6 +32,5 @@ See specific documentation in the /docs folder for more detail.
 ### General
 - Use descriptive names
 - Keep functions small and focused
-- Add comments for complex logic
 - Error handling: prefer try/catch in TS, use assertions in GDScript
 - Use context7 to retrieve Godot docs to verify any work involving the Godot API.
