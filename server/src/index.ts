@@ -88,16 +88,8 @@ async function main() {
   server.addResource(sceneStructureResource);
   server.addResource(scriptMetadataResource);
 
-  // Try to connect to Godot and start continuous reconnection
-  try {
-    const godot = getGodotConnection(godotPort);
-    await godot.connect();
-    console.error(`Successfully connected to Godot WebSocket server on port ${godotPort}`);
-  } catch (error) {
-    const err = error as Error;
-    console.warn(`Could not connect to Godot on port ${godotPort}: ${err.message}`);
-    console.warn('Will continuously retry connection in background');
-  }
+  const godot = getGodotConnection(godotPort);
+  godot.connect();
 
   // Start the server
   if (useHttp) {
@@ -128,7 +120,6 @@ async function main() {
   }
 
   console.error('Ready to process commands from Claude or other AI assistants');
-  console.error('TIP: Use the analyze_script command to verify GDScript code edits for syntax errors');
 
   // Handle cleanup
   const cleanup = () => {
