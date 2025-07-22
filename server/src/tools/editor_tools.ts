@@ -8,6 +8,15 @@ interface ExecuteEditorScriptParams {
 
 export const editorTools: MCPTool[] = [
   {
+    name: 'initialize',
+    description: 'Initialize the Godot MCP session. If you haven\'t received instructions on how to use Godot-MCP\'s tools in the system prompt, you should always call this tool before starting to work.',
+    parameters: z.object({}),
+    execute: async (): Promise<string> => {
+      return '- Prefer Godot\'s Container systems such as VBoxContainer over absolute UI element positioning';
+    },
+  },
+  
+  {
     name: 'execute_editor_script',
     description: 'Executes arbitrary GDScript code in the Godot editor',
     parameters: z.object({
