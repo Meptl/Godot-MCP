@@ -4,94 +4,94 @@ extends MCPBaseCommandProcessor
 
 
 # Common validation and setup helpers
-func _validate_and_get_edited_scene(client_id: int, command_id: String):
+func _validate_and_get_edited_scene():
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 
 	if not edited_scene_root:
-		_send_error(client_id, "No scene is currently being edited", command_id)
+		command_result = {"error": "No scene is currently being edited"}
 		return null
 
 	return edited_scene_root
 
 
-func _validate_and_get_node(node_path: String, client_id: int, command_id: String):
+func _validate_and_get_node(node_path: String):
 	if node_path.is_empty():
-		_send_error(client_id, "Node path cannot be empty", command_id)
+		command_result = {"error": "Node path cannot be empty"}
 		return null
 
 	var node = _get_editor_node(node_path)
 	if not node:
-		_send_error(client_id, "Node not found: %s" % node_path, command_id)
+		command_result = {"error": "Node not found: %s" % node_path}
 		return null
 
 	return node
 
 
-func _validate_property_exists(
-	node: Node, property_name: String, client_id: int, command_id: String
-) -> bool:
+func _validate_property_exists(node: Node, property_name: String) -> bool:
 	if not property_name in node:
-		_send_error(client_id, "Property %s does not exist on node" % property_name, command_id)
+		command_result = {"error": "Property %s does not exist on node" % property_name}
 		return false
 	return true
 
 
-func process_command(
-	client_id: int, command_type: String, params: Dictionary, command_id: String
-) -> bool:
+func _handle_command(command_type: String, params: Dictionary) -> bool:
 	match command_type:
 		"create_node":
-			_create_node(client_id, params, command_id)
+			_create_node(params)
 			return true
 		"delete_node":
-			_delete_node(client_id, params, command_id)
+			_delete_node(params)
 			return true
 		"update_node_property":
-			_update_node_property(client_id, params, command_id)
+			_update_node_property(params)
 			return true
 		"get_node_properties":
-			_get_node_properties(client_id, params, command_id)
+			_get_node_properties(params)
 			return true
 		"update_node_properties":
-			_update_node_properties(client_id, params, command_id)
+			_update_node_properties(params)
 			return true
 		"attach_script":
-			_attach_script(client_id, params, command_id)
+			_attach_script(params)
 			return true
 		"reparent_node":
-			_reparent_node(client_id, params, command_id)
+			_reparent_node(params)
 			return true
 	return false  # Command not handled
 
 
-func _create_node(client_id: int, params: Dictionary, command_id: String) -> void:
+func _create_node(params: Dictionary) -> void:
 	var parent_path = params.get("parent_path", "/root")
 	var node_type = params.get("node_type", "Node")
 	var node_name = params.get("node_name", "NewNode")
 
 	# Validation
 	if not ClassDB.class_exists(node_type):
-		return _send_error(client_id, "Invalid node type: %s" % node_type, command_id)
+		command_result = {"error": "Invalid node type: %s" % node_type}
+		return
 
 	# Get edited scene
-	var edited_scene_root = _validate_and_get_edited_scene(client_id, command_id)
+	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
 		return
 
 	# Get the parent node
 	var parent = _get_editor_node(parent_path)
 	if not parent:
-		return _send_error(client_id, "Parent node not found: %s" % parent_path, command_id)
+		command_result = {"error": "Parent node not found: %s" % parent_path}
+		return
 
 	# Create the node
 	var node
 	if ClassDB.can_instantiate(node_type):
 		node = ClassDB.instantiate(node_type)
 	else:
-		return _send_error(client_id, "Cannot instantiate node of type: %s" % node_type, command_id)
+		command_result = {"error": "Cannot instantiate node of type: %s" % node_type}
+		return
 
 	if not node:
-		return _send_error(client_id, "Failed to create node of type: %s" % node_type, command_id)
+		command_result = {"error": "Failed to create node of type: %s" % node_type}
+		return
 
 	# Set the node name
 	node.name = node_name
@@ -100,30 +100,32 @@ func _create_node(client_id: int, params: Dictionary, command_id: String) -> voi
 	node.owner = edited_scene_root
 	_mark_scene_modified()
 
-	_send_success(client_id, {"node_path": parent_path + "/" + node_name}, command_id)
+	command_result = {"node_path": parent_path + "/" + node_name}
 
 
-func _delete_node(client_id: int, params: Dictionary, command_id: String) -> void:
+func _delete_node(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 
 	# Get edited scene
-	var edited_scene_root = _validate_and_get_edited_scene(client_id, command_id)
+	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
 		return
 
 	# Get and validate the node
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
 	# Cannot delete the root node
 	if node == edited_scene_root:
-		return _send_error(client_id, "Cannot delete the root node", command_id)
+		command_result = {"error": "Cannot delete the root node"}
+		return
 
 	# Get parent for operation
 	var parent = node.get_parent()
 	if not parent:
-		return _send_error(client_id, "Node has no parent: %s" % node_path, command_id)
+		command_result = {"error": "Node has no parent: %s" % node_path}
+		return
 
 	# Remove the node
 	parent.remove_child(node)
@@ -132,28 +134,30 @@ func _delete_node(client_id: int, params: Dictionary, command_id: String) -> voi
 	# Mark the scene as modified
 	_mark_scene_modified()
 
-	_send_success(client_id, {"deleted_node_path": node_path}, command_id)
+	command_result = {"deleted_node_path": node_path}
 
 
-func _update_node_property(client_id: int, params: Dictionary, command_id: String) -> void:
+func _update_node_property(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var property_name = params.get("property", "")
 	var property_value = params.get("value")
 
 	# Basic validation
 	if property_name.is_empty():
-		return _send_error(client_id, "Property name cannot be empty", command_id)
+		command_result = {"error": "Property name cannot be empty"}
+		return
 
 	if property_value == null:
-		return _send_error(client_id, "Property value cannot be null", command_id)
+		command_result = {"error": "Property value cannot be null"}
+		return
 
 	# Get and validate the node
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
 	# Check if the property exists
-	if not _validate_property_exists(node, property_name, client_id, command_id):
+	if not _validate_property_exists(node, property_name):
 		return
 
 	# Parse property value for Godot types
@@ -162,34 +166,31 @@ func _update_node_property(client_id: int, params: Dictionary, command_id: Strin
 	node.set(property_name, parsed_value)
 	_mark_scene_modified()
 
-	_send_success(
-		client_id,
-		{
-			"node_path": node_path,
-			"property": property_name,
-			"value": property_value,
-			"parsed_value": str(parsed_value)
-		},
-		command_id
-	)
+	command_result = {
+		"node_path": node_path,
+		"property": property_name,
+		"value": property_value,
+		"parsed_value": str(parsed_value)
+	}
 
 
-func _update_node_properties(client_id: int, params: Dictionary, command_id: String) -> void:
+func _update_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var properties = params.get("properties", {})
 
 	# Basic validation
 	if properties.is_empty():
-		return _send_error(client_id, "Properties dictionary cannot be empty", command_id)
+		command_result = {"error": "Properties dictionary cannot be empty"}
+		return
 
 	# Get and validate the node
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
 	# Validate all properties exist before updating any
 	for property_name in properties:
-		if not _validate_property_exists(node, property_name, client_id, command_id):
+		if not _validate_property_exists(node, property_name):
 			return
 
 	var updated_properties = []
@@ -200,22 +201,18 @@ func _update_node_properties(client_id: int, params: Dictionary, command_id: Str
 		updated_properties.append(property_name)
 	_mark_scene_modified()
 
-	_send_success(
-		client_id,
-		{
-			"node_path": node_path,
-			"updated_properties": updated_properties,
-			"properties": properties
-		},
-		command_id
-	)
+	command_result = {
+		"node_path": node_path,
+		"updated_properties": updated_properties,
+		"properties": properties
+	}
 
 
-func _get_node_properties(client_id: int, params: Dictionary, command_id: String) -> void:
+func _get_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 
 	# Get and validate the node
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
@@ -228,21 +225,23 @@ func _get_node_properties(client_id: int, params: Dictionary, command_id: String
 		if not name.begins_with("_"):  # Skip internal properties
 			properties[name] = node.get(name)
 
-	_send_success(client_id, {"node_path": node_path, "properties": properties}, command_id)
+	command_result = {"node_path": node_path, "properties": properties}
 
 
 
 
-func _attach_script(client_id: int, params: Dictionary, command_id: String) -> void:
+func _attach_script(params: Dictionary) -> void:
 	var script_path = params.get("script_path", "")
 	var node_path = params.get("node_path", "")
 
 	# Validation
 	if script_path.is_empty():
-		return _send_error(client_id, "Script path cannot be empty", command_id)
+		command_result = {"error": "Script path cannot be empty"}
+		return
 
 	if node_path.is_empty():
-		return _send_error(client_id, "Node path cannot be empty", command_id)
+		command_result = {"error": "Node path cannot be empty"}
+		return
 
 	# Make sure we have an absolute path
 	if not script_path.begins_with("res://"):
@@ -253,77 +252,85 @@ func _attach_script(client_id: int, params: Dictionary, command_id: String) -> v
 
 	# Check if script file exists
 	if not FileAccess.file_exists(script_path):
-		return _send_error(client_id, "Script file not found: %s" % script_path, command_id)
+		command_result = {"error": "Script file not found: %s" % script_path}
+		return
 
 	# Get and validate the node
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
 	# Get edited scene for owner setting
-	var edited_scene_root = _validate_and_get_edited_scene(client_id, command_id)
+	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
 		return
 
 	# Load the script
 	var script = load(script_path)
 	if not script:
-		return _send_error(client_id, "Failed to load script: %s" % script_path, command_id)
+		command_result = {"error": "Failed to load script: %s" % script_path}
+		return
 
 	node.set_script(script)
 	_mark_scene_modified()
 
-	_send_success(client_id, {"script_path": script_path, "node_path": node_path}, command_id)
+	command_result = {"script_path": script_path, "node_path": node_path}
 
 
 
 
-func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> void:
+func _reparent_node(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var new_parent_path = params.get("new_parent_path", "")
 	var index = params.get("index", -1)
 
 	# Basic validation
 	if node_path.is_empty():
-		return _send_error(client_id, "Node path cannot be empty", command_id)
+		command_result = {"error": "Node path cannot be empty"}
+		return
 
 	if new_parent_path.is_empty():
-		return _send_error(client_id, "New parent path cannot be empty", command_id)
+		command_result = {"error": "New parent path cannot be empty"}
+		return
 
 	# Get edited scene
-	var edited_scene_root = _validate_and_get_edited_scene(client_id, command_id)
+	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
 		return
 
 	# Get and validate the node to move
-	var node = _validate_and_get_node(node_path, client_id, command_id)
+	var node = _validate_and_get_node(node_path)
 	if not node:
 		return
 
 	# Get and validate the new parent
-	var new_parent = _validate_and_get_node(new_parent_path, client_id, command_id)
+	var new_parent = _validate_and_get_node(new_parent_path)
 	if not new_parent:
 		return
 
 	# Prevent moving to self or descendants
 	if node == new_parent:
-		return _send_error(client_id, "Cannot reparent node to itself", command_id)
+		command_result = {"error": "Cannot reparent node to itself"}
+		return
 
 	# Check if new_parent is a descendant of node
 	var current = new_parent
 	while current:
 		if current == node:
-			return _send_error(client_id, "Cannot reparent node to its own descendant", command_id)
+			command_result = {"error": "Cannot reparent node to its own descendant"}
+			return
 		current = current.get_parent()
 
 	# Cannot reparent the root node
 	if node == edited_scene_root:
-		return _send_error(client_id, "Cannot reparent the root node", command_id)
+		command_result = {"error": "Cannot reparent the root node"}
+		return
 
 	# Get the current parent
 	var old_parent = node.get_parent()
 	if not old_parent:
-		return _send_error(client_id, "Node has no parent: %s" % node_path, command_id)
+		command_result = {"error": "Node has no parent: %s" % node_path}
+		return
 
 	old_parent.remove_child(node)
 	if index >= 0 and index < new_parent.get_child_count():
@@ -335,13 +342,9 @@ func _reparent_node(client_id: int, params: Dictionary, command_id: String) -> v
 	node.owner = edited_scene_root
 	_mark_scene_modified()
 
-	_send_success(
-		client_id,
-		{
-			"node_path": node_path,
-			"old_parent_path": str(old_parent.get_path()),
-			"new_parent_path": new_parent_path,
-			"index": index if index >= 0 else new_parent.get_child_count() - 1
-		},
-		command_id
-	)
+	command_result = {
+		"node_path": node_path,
+		"old_parent_path": str(old_parent.get_path()),
+		"new_parent_path": new_parent_path,
+		"index": index if index >= 0 else new_parent.get_child_count() - 1
+	}

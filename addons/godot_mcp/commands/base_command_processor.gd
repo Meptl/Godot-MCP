@@ -8,9 +8,29 @@ signal command_completed(client_id, command_type, result, command_id)
 # Reference to the server - passed by the command handler
 var _websocket_server = null
 
+# Command result to be set by child classes
+var command_result = null
+
 # Must be implemented by subclasses
 func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:
-	push_error("BaseCommandProcessor.process_command called directly")
+	# Reset command result
+	command_result = null
+	
+	# Call child class implementation
+	var handled = _handle_command(command_type, params)
+	
+	# Send response based on command_result
+	if handled and command_result != null:
+		if command_result.has("error"):
+			_send_error(client_id, command_result["error"], command_id)
+		else:
+			_send_success(client_id, command_result, command_id)
+	
+	return handled
+
+# To be implemented by subclasses instead of process_command
+func _handle_command(command_type: String, params: Dictionary) -> bool:
+	push_error("BaseCommandProcessor._handle_command not implemented")
 	return false
 
 # Helper functions common to all command processors

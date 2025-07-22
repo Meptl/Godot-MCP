@@ -2,19 +2,20 @@
 class_name MCPEditorScriptCommands
 extends MCPBaseCommandProcessor
 
-func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:
+func _handle_command(command_type: String, params: Dictionary) -> bool:
 	match command_type:
 		"execute_editor_script":
-			_execute_editor_script(client_id, params, command_id)
+			_execute_editor_script(params)
 			return true
 	return false  # Command not handled
 
-func _execute_editor_script(client_id: int, params: Dictionary, command_id: String) -> void:
+func _execute_editor_script(params: Dictionary) -> void:
 	var code = params.get("code", "")
 	
 	# Validation
 	if code.is_empty():
-		return _send_error(client_id, "Code cannot be empty", command_id)
+		command_result = {"error": "Code cannot be empty"}
+		return
 	
 	# Create a temporary script node to execute the code
 	var script_node := Node.new()
@@ -118,23 +119,19 @@ func _execute_code():
 	if error != OK:
 		remove_child(script_node)
 		script_node.queue_free()
-		return _send_error(client_id, "Script parsing error: " + str(error), command_id)
+		command_result = {"error": "Script parsing error: " + str(error)}
+		return
 	
 	# Assign the script to the node
 	script_node.set_script(script)
 	
-	# Connect to the execution_completed signal
-	script_node.connect("execution_completed", _on_script_execution_completed.bind(script_node, client_id, command_id))
-
+	# Execute script and wait for completion
 	script_node.run()
-
-
-# Signal handler for when script execution completes
-func _on_script_execution_completed(script_node: Node, client_id: int, command_id: String) -> void:
-	# Collect results safely by checking if properties exist
-	var execution_result = script_node.get("result")
-	var output = script_node._output_array
-	var error_message = script_node._error_message
+	
+	# Collect results
+	execution_result = script_node.get("result")
+	output = script_node._output_array
+	error_message = script_node._error_message
 	
 	# Clean up
 	remove_child(script_node)
@@ -153,7 +150,8 @@ func _on_script_execution_completed(script_node: Node, client_id: int, command_i
 	elif execution_result != null:
 		result_data["result"] = execution_result
 	
-	_send_success(client_id, result_data, command_id)
+	# Set command result
+	command_result = result_data
 
 # Replace print() calls with custom_print() in the user code
 func _replace_print_calls(code: String) -> String:

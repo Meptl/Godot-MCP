@@ -2,26 +2,26 @@
 class_name MCPProjectCommands
 extends MCPBaseCommandProcessor
 
-func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:
+func _handle_command(command_type: String, params: Dictionary) -> bool:
 	match command_type:
 		"get_project_info":
-			_get_project_info(client_id, params, command_id)
+			_get_project_info(params)
 			return true
 		"list_project_files":
-			_list_project_files(client_id, params, command_id)
+			_list_project_files(params)
 			return true
 		"get_project_structure":
-			_get_project_structure(client_id, params, command_id)
+			_get_project_structure(params)
 			return true
 		"get_project_settings":
-			_get_project_settings(client_id, params, command_id)
+			_get_project_settings(params)
 			return true
 		"list_project_resources":
-			_list_project_resources(client_id, params, command_id)
+			_list_project_resources(params)
 			return true
 	return false  # Command not handled
 
-func _get_project_info(client_id: int, _params: Dictionary, command_id: String) -> void:
+func _get_project_info(_params: Dictionary) -> void:
 	var project_name = ProjectSettings.get_setting("application/config/name", "Untitled Project")
 	var project_version = ProjectSettings.get_setting("application/config/version", "1.0.0")
 	var project_path = ProjectSettings.globalize_path("res://")
@@ -37,15 +37,15 @@ func _get_project_info(client_id: int, _params: Dictionary, command_id: String) 
 		"patch": version_info.get("patch", 0)
 	}
 	
-	_send_success(client_id, {
+	command_result = {
 		"project_name": project_name,
 		"project_version": project_version,
 		"project_path": project_path,
 		"godot_version": structured_version,
 		"current_scene": get_tree().edited_scene_root.scene_file_path if get_tree().edited_scene_root else ""
-	}, command_id)
+	}
 
-func _list_project_files(client_id: int, params: Dictionary, command_id: String) -> void:
+func _list_project_files(params: Dictionary) -> void:
 	var extensions = params.get("extensions", [])
 	var files = []
 	
@@ -54,11 +54,12 @@ func _list_project_files(client_id: int, params: Dictionary, command_id: String)
 	if dir:
 		_scan_directory(dir, "", extensions, files)
 	else:
-		return _send_error(client_id, "Failed to open res:// directory", command_id)
+		command_result = {"error": "Failed to open res:// directory"}
+		return
 	
-	_send_success(client_id, {
+	command_result = {
 		"files": files
-	}, command_id)
+	}
 
 func _scan_directory(dir: DirAccess, path: String, extensions: Array, files: Array) -> void:
 	dir.list_dir_begin()
@@ -85,7 +86,7 @@ func _scan_directory(dir: DirAccess, path: String, extensions: Array, files: Arr
 	
 	dir.list_dir_end()
 
-func _get_project_structure(client_id: int, params: Dictionary, command_id: String) -> void:
+func _get_project_structure(params: Dictionary) -> void:
 	var structure = {
 		"directories": [],
 		"file_counts": {},
@@ -96,9 +97,10 @@ func _get_project_structure(client_id: int, params: Dictionary, command_id: Stri
 	if dir:
 		_analyze_project_structure(dir, "", structure)
 	else:
-		return _send_error(client_id, "Failed to open res:// directory", command_id)
+		command_result = {"error": "Failed to open res:// directory"}
+		return
 	
-	_send_success(client_id, structure, command_id)
+	command_result = structure
 
 func _analyze_project_structure(dir: DirAccess, path: String, structure: Dictionary) -> void:
 	dir.list_dir_begin()
@@ -125,7 +127,7 @@ func _analyze_project_structure(dir: DirAccess, path: String, structure: Diction
 	
 	dir.list_dir_end()
 
-func _get_project_settings(client_id: int, params: Dictionary, command_id: String) -> void:
+func _get_project_settings(params: Dictionary) -> void:
 	# Get relevant project settings
 	var settings = {
 		"project_name": ProjectSettings.get_setting("application/config/name", "Untitled Project"),
@@ -157,9 +159,9 @@ func _get_project_settings(client_id: int, params: Dictionary, command_id: Strin
 	if input_map:
 		settings["input_map"] = input_map
 	
-	_send_success(client_id, settings, command_id)
+	command_result = settings
 
-func _list_project_resources(client_id: int, params: Dictionary, command_id: String) -> void:
+func _list_project_resources(params: Dictionary) -> void:
 	var resources = {
 		"scenes": [],
 		"scripts": [],
@@ -173,9 +175,10 @@ func _list_project_resources(client_id: int, params: Dictionary, command_id: Str
 	if dir:
 		_scan_resources(dir, "", resources)
 	else:
-		return _send_error(client_id, "Failed to open res:// directory", command_id)
+		command_result = {"error": "Failed to open res:// directory"}
+		return
 	
-	_send_success(client_id, resources, command_id)
+	command_result = resources
 
 func _scan_resources(dir: DirAccess, path: String, resources: Dictionary) -> void:
 	dir.list_dir_begin()

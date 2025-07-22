@@ -2,26 +2,26 @@
 class_name MCPSceneCommands
 extends MCPBaseCommandProcessor
 
-func process_command(client_id: int, command_type: String, params: Dictionary, command_id: String) -> bool:
+func _handle_command(command_type: String, params: Dictionary) -> bool:
 	match command_type:
 		"save_scene":
-			_save_scene(client_id, params, command_id)
+			_save_scene(params)
 			return true
 		"open_scene":
-			_open_scene(client_id, params, command_id)
+			_open_scene(params)
 			return true
 		"get_current_scene":
-			_get_current_scene(client_id, params, command_id)
+			_get_current_scene(params)
 			return true
 		"create_scene":
-			_create_scene(client_id, params, command_id)
+			_create_scene(params)
 			return true
 		"get_scene_tree":
-			_get_scene_tree(client_id, params, command_id)
+			_get_scene_tree(params)
 			return true
 	return false  # Command not handled
 
-func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void:
+func _save_scene(params: Dictionary) -> void:
 	var path = params.get("path", "")
 	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
@@ -32,7 +32,8 @@ func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	
 	# Validation
 	if path.is_empty():
-		return _send_error(client_id, "Scene path cannot be empty", command_id)
+		command_result = {"error": "Scene path cannot be empty"}
+		return
 	
 	# Make sure we have an absolute path
 	if not path.begins_with("res://"):
@@ -43,28 +44,32 @@ func _save_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	
 	# Check if we have an edited scene
 	if not edited_scene_root:
-		return _send_error(client_id, "No scene is currently being edited", command_id)
+		command_result = {"error": "No scene is currently being edited"}
+		return
 	
 	# Save the scene
 	var packed_scene = PackedScene.new()
 	var result = packed_scene.pack(edited_scene_root)
 	if result != OK:
-		return _send_error(client_id, "Failed to pack scene: %d" % result, command_id)
+		command_result = {"error": "Failed to pack scene: %d" % result}
+		return
 	
 	result = ResourceSaver.save(packed_scene, path)
 	if result != OK:
-		return _send_error(client_id, "Failed to save scene: %d" % result, command_id)
+		command_result = {"error": "Failed to save scene: %d" % result}
+		return
 	
-	_send_success(client_id, {
+	command_result = {
 		"scene_path": path
-	}, command_id)
+	}
 
-func _open_scene(client_id: int, params: Dictionary, command_id: String) -> void:
+func _open_scene(params: Dictionary) -> void:
 	var path = params.get("path", "")
 	
 	# Validation
 	if path.is_empty():
-		return _send_error(client_id, "Scene path cannot be empty", command_id)
+		command_result = {"error": "Scene path cannot be empty"}
+		return
 	
 	# Make sure we have an absolute path
 	if not path.begins_with("res://"):
@@ -72,24 +77,25 @@ func _open_scene(client_id: int, params: Dictionary, command_id: String) -> void
 	
 	# Check if the file exists
 	if not FileAccess.file_exists(path):
-		return _send_error(client_id, "Scene file not found: %s" % path, command_id)
+		command_result = {"error": "Scene file not found: %s" % path}
+		return
 	
 	EditorInterface.open_scene_from_path(path)
-	_send_success(client_id, {
+	command_result = {
 		"scene_path": path
-	}, command_id)
+	}
 
-func _get_current_scene(client_id: int, _params: Dictionary, command_id: String) -> void:
+func _get_current_scene(_params: Dictionary) -> void:
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
 		print("No scene is currently being edited")
 		# Instead of returning an error, return a valid response with empty/default values
-		_send_success(client_id, {
+		command_result = {
 			"scene_path": "None",
 			"root_node_type": "None",
 			"root_node_name": "None"
-		}, command_id)
+		}
 		return
 	
 	var scene_path = edited_scene_root.scene_file_path
@@ -100,20 +106,21 @@ func _get_current_scene(client_id: int, _params: Dictionary, command_id: String)
 	print("Root node type: ", edited_scene_root.get_class())
 	print("Root node name: ", edited_scene_root.name)
 	
-	_send_success(client_id, {
+	command_result = {
 		"scene_path": scene_path,
 		"root_node_type": edited_scene_root.get_class(),
 		"root_node_name": edited_scene_root.name
-	}, command_id)
+	}
 
 
-func _create_scene(client_id: int, params: Dictionary, command_id: String) -> void:
+func _create_scene(params: Dictionary) -> void:
 	var path = params.get("path", "")
 	var root_node_type = params.get("root_node_type", "Node")
 	
 	# Validation
 	if path.is_empty():
-		return _send_error(client_id, "Scene path cannot be empty", command_id)
+		command_result = {"error": "Scene path cannot be empty"}
+		return
 	
 	# Make sure we have an absolute path
 	if not path.begins_with("res://"):
@@ -132,7 +139,8 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	
 	# Check if file already exists
 	if FileAccess.file_exists(path):
-		return _send_error(client_id, "Scene file already exists: %s" % path, command_id)
+		command_result = {"error": "Scene file already exists: %s" % path}
+		return
 	
 	# Create the root node of the specified type
 	var root_node = null
@@ -155,7 +163,8 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 			if ClassDB.class_exists(root_node_type):
 				root_node = ClassDB.instantiate(root_node_type)
 			else:
-				return _send_error(client_id, "Invalid root node type: %s" % root_node_type, command_id)
+				command_result = {"error": "Invalid root node type: %s" % root_node_type}
+				return
 	
 	# Give the root node a name based on the file name
 	var file_name = path.get_file().get_basename()
@@ -166,13 +175,15 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	var result = packed_scene.pack(root_node)
 	if result != OK:
 		root_node.free()
-		return _send_error(client_id, "Failed to pack scene: %d" % result, command_id)
+		command_result = {"error": "Failed to pack scene: %d" % result}
+		return
 	
 	# Save the packed scene to disk
 	result = ResourceSaver.save(packed_scene, path)
 	if result != OK:
 		root_node.free()
-		return _send_error(client_id, "Failed to save scene: %d" % result, command_id)
+		command_result = {"error": "Failed to save scene: %d" % result}
+		return
 	
 	# Clean up
 	root_node.free()
@@ -180,16 +191,17 @@ func _create_scene(client_id: int, params: Dictionary, command_id: String) -> vo
 	# Try to open the scene in the editor
 	EditorInterface.open_scene_from_path(path)
 	
-	_send_success(client_id, {
+	command_result = {
 		"scene_path": path,
 		"root_node_type": root_node_type
-	}, command_id)
+	}
 
-func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) -> void:
+func _get_scene_tree(_params: Dictionary) -> void:
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
 	if not edited_scene_root:
-		return _send_error(client_id, "No scene is currently being edited", command_id)
+		command_result = {"error": "No scene is currently being edited"}
+		return
 	
 	var scene_path = edited_scene_root.scene_file_path
 	if scene_path.is_empty():
@@ -198,10 +210,10 @@ func _get_scene_tree(client_id: int, _params: Dictionary, command_id: String) ->
 	var tree_output = _build_tree_output(edited_scene_root, 0)
 	
 	# Return the structure
-	_send_success(client_id, {
+	command_result = {
 		"scene_path": scene_path,
 		"tree": tree_output
-	}, command_id)
+	}
 
 func _build_tree_output(node: Node, depth: int) -> String:
 	# Note: LLMs were not properly reading whitespace-indented bullet points,
