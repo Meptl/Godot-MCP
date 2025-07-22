@@ -57,6 +57,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"reparent_node":
 			_reparent_node(params)
 			return true
+		"change_node_type":
+			_change_node_type(params)
+			return true
 	return false  # Command not handled
 
 
@@ -348,3 +351,95 @@ func _reparent_node(params: Dictionary) -> void:
 		"new_parent_path": new_parent_path,
 		"index": index if index >= 0 else new_parent.get_child_count() - 1
 	}
+
+
+func _change_node_type(params: Dictionary) -> void:
+	var node_path = params.get("node_path", "")
+	var new_node_type = params.get("node_type", "")
+	
+	if node_path.is_empty():
+		command_result = {"error": "Node path cannot be empty"}
+		return
+	
+	if new_node_type.is_empty():
+		command_result = {"error": "Node type cannot be empty"}
+		return
+	
+	if not ClassDB.class_exists(new_node_type):
+		command_result = {"error": "Invalid node type: %s" % new_node_type}
+		return
+	
+	if not ClassDB.can_instantiate(new_node_type):
+		command_result = {"error": "Cannot instantiate node of type: %s" % new_node_type}
+		return
+	
+	var edited_scene_root = _validate_and_get_edited_scene()
+	if not edited_scene_root:
+		return
+	
+	var node = _validate_and_get_node(node_path)
+	if not node:
+		return
+	
+	var is_root = node == edited_scene_root
+	var parent = node.get_parent()
+	var node_index = node.get_index()
+	var node_name = node.name
+	var node_owner = node.owner
+	
+	if not is_root and not parent:
+		command_result = {"error": "Node has no parent: %s" % node_path}
+		return
+	
+	var properties = {}
+	var property_list = node.get_property_list()
+	for prop in property_list:
+		var prop_name = prop["name"]
+		if not prop_name.begins_with("_") and prop_name != "name":
+			properties[prop_name] = node.get(prop_name)
+	
+	var attached_script = node.get_script()
+	var children = []
+	for child in node.get_children():
+		children.append(child)
+		node.remove_child(child)
+	
+	if not is_root:
+		parent.remove_child(node)
+	
+	node.queue_free()
+	
+	var new_node = ClassDB.instantiate(new_node_type)
+	if not new_node:
+		command_result = {"error": "Failed to create node of type: %s" % new_node_type}
+		return
+	
+	new_node.name = node_name
+	
+	if is_root:
+		# Use the correct SceneTree API for root nodes
+		get_tree().set_edited_scene_root(new_node)
+	else:
+		parent.add_child(new_node)
+		parent.move_child(new_node, node_index)
+		new_node.owner = node_owner
+	
+	for property_name in properties:
+		if property_name in new_node:
+			new_node.set(property_name, properties[property_name])
+	
+	if attached_script:
+		new_node.set_script(attached_script)
+	
+	for child in children:
+		new_node.add_child(child)
+		if is_root:
+			child.owner = new_node
+	
+	_mark_scene_modified()
+	
+	command_result = {
+		"node_path": str(new_node.get_path()),
+		"node_type": new_node_type
+	}
+

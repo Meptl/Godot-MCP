@@ -43,6 +43,11 @@ interface ReparentNodeParams {
   index?: number;
 }
 
+interface ChangeNodeTypeParams {
+  node_path: string;
+  node_type: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -224,6 +229,31 @@ export const nodeTools: MCPTool[] = [
         return `Moved node from ${node_path} to ${new_parent_path}${index !== undefined ? ` at index ${index}` : ''}`;
       } catch (error) {
         throw new Error(`Failed to reparent node: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'change_node_type',
+    description: 'Change the type of an existing node in the Godot scene tree',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node to change (e.g. "/root/MainScene/Player")'),
+      node_type: z.string()
+        .describe('New node type to change to (e.g. "CharacterBody2D", "RigidBody2D", "StaticBody2D")'),
+    }),
+    execute: async ({ node_path, node_type }: ChangeNodeTypeParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('change_node_type', {
+          node_path,
+          node_type,
+        });
+        
+        return `Changed node at ${result.node_path} to ${result.node_type}`;
+      } catch (error) {
+        throw new Error(`Failed to change node type: ${(error as Error).message}`);
       }
     },
   },
