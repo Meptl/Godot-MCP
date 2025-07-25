@@ -27,7 +27,6 @@ See specific documentation in the /docs folder for more detail.
 - Use PascalCase for classes
 - Use type hints where possible: `var player: Player`
 - Follow Godot singleton conventions (e.g., `Engine`, `OS`)
-- Prefer signals for communication between nodes
 
 ### General
 - Use descriptive names
