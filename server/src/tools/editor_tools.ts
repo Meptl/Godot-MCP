@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { getGodotConnection } from '../utils/godot_connection.js';
 import { MCPTool } from '../utils/types.js';
 
@@ -12,7 +15,15 @@ export const editorTools: MCPTool[] = [
     description: 'Initialize the Godot MCP session. If you haven\'t received instructions on how to use Godot-MCP\'s tools in the system prompt, you should always call this tool before starting to work.',
     parameters: z.object({}),
     execute: async (): Promise<string> => {
-      return '- Prefer Godot\'s Container systems such as VBoxContainer over absolute UI element positioning';
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const initFilePath = join(__dirname, 'initialize.txt');
+      
+      try {
+        return readFileSync(initFilePath, 'utf-8').trim();
+      } catch (error) {
+        throw new Error(`Failed to read initialization file: ${(error as Error).message}`);
+      }
     },
   },
   
