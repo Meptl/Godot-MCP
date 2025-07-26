@@ -60,7 +60,7 @@ export const editorTools: MCPTool[] = [
   
   {
     name: 'analyze_script',
-    description: 'Analyze a GDScript file for syntax errors and potential issues. Use this to verify the correctness of GDScript code edits you make - it returns the same error messages you would get from the Godot editor when editing GDScript files. Essential for validating code changes before they are applied.',
+    description: 'Analyze a GDScript file for syntax errors and potential issues. Returns JSON with "success" (true if no errors) and "output" (array where output[0] is stdout with first two lines removed, output[1] is stderr if present). Use this to verify the correctness of GDScript code edits you make.',
     parameters: z.object({
       script_path: z.string()
         .describe('Path to the GDScript file to analyze (e.g. "res://scripts/player.gd")'),
@@ -70,26 +70,7 @@ export const editorTools: MCPTool[] = [
       
       try {
         const result = await godot.sendCommand('analyze_script', { script_path });
-        
-        if (result.success) {
-          if (result.errors && result.errors.length > 0) {
-            let errorSummary = `Script analysis found ${result.errors.length} error(s) in ${script_path}:\n\n`;
-            
-            result.errors.forEach((error: any, index: number) => {
-              errorSummary += `${index + 1}. `;
-              if (error.line !== undefined) {
-                errorSummary += `Line ${error.line}: `;
-              }
-              errorSummary += `${error.message}\n`;
-            });
-            
-            return errorSummary;
-          } else {
-            return `Script analysis completed successfully for ${script_path}. No syntax errors found.`;
-          }
-        } else {
-          return `Failed to analyze script ${script_path}: ${result.error || 'Unknown error'}`;
-        }
+        return JSON.stringify(result, null, 2);
       } catch (error) {
         throw new Error(`Failed to analyze script: ${(error as Error).message}`);
       }

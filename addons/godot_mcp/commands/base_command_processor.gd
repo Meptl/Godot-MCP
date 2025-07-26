@@ -1,3 +1,7 @@
+
+
+
+
 @tool
 class_name MCPBaseCommandProcessor
 extends Node

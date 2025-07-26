@@ -7,6 +7,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"execute_editor_script":
 			_execute_editor_script(params)
 			return true
+		"analyze_script":
+			_analyze_script(params)
+			return true
 	return false  # Command not handled
 
 func _execute_editor_script(params: Dictionary) -> void:
@@ -177,3 +180,34 @@ func _replace_print_calls(code: String) -> String:
 		modified_code = modified_code.substr(0, start) + replacement + modified_code.substr(end)
 	
 	return modified_code
+
+func _analyze_script(params: Dictionary) -> void:
+	var script_path = params.get("script_path", "")
+	
+	if script_path.is_empty():
+		command_result = {"error": "Script path cannot be empty"}
+		return
+	
+	var output = []
+	var godot_executable = OS.get_executable_path()
+	var script_absolute_path = ProjectSettings.globalize_path(script_path)
+	var args = ["--headless", "--check-only", "--script", script_absolute_path]
+	
+	OS.execute(godot_executable, args, output, true)
+	
+	# Remove first two lines from stdout (Godot startup output)
+	var filtered_output = output.duplicate()
+	if output.size() > 0 and not output[0].is_empty():
+		var stdout_lines = output[0].split("\n")
+		if stdout_lines.size() > 2:
+			var filtered_lines = []
+			for i in range(2, stdout_lines.size()):
+				filtered_lines.append(stdout_lines[i])
+			filtered_output[0] = "\n".join(filtered_lines)
+		else:
+			filtered_output[0] = ""
+	
+	command_result = {
+		"success": filtered_output[0].is_empty() if filtered_output.size() > 0 else true,
+		"output": filtered_output
+	}
