@@ -188,6 +188,7 @@ func _analyze_script(params: Dictionary) -> void:
 		command_result = {"error": "Script path cannot be empty"}
 		return
 	
+	# Will be an array of two strings. stdout and stderr.
 	var output = []
 	var godot_executable = OS.get_executable_path()
 	var script_absolute_path = ProjectSettings.globalize_path(script_path)
@@ -195,19 +196,15 @@ func _analyze_script(params: Dictionary) -> void:
 	
 	OS.execute(godot_executable, args, output, true)
 	
+	# Convert PackedStringArray to regular Array.
+	output = output.duplicate()
+	var stdout_lines = output[0].split("\n")
 	# Remove first two lines from stdout (Godot startup output)
-	var filtered_output = output.duplicate()
-	if output.size() > 0 and not output[0].is_empty():
-		var stdout_lines = output[0].split("\n")
-		if stdout_lines.size() > 2:
-			var filtered_lines = []
-			for i in range(2, stdout_lines.size()):
-				filtered_lines.append(stdout_lines[i])
-			filtered_output[0] = "\n".join(filtered_lines)
-		else:
-			filtered_output[0] = ""
-	
+	stdout_lines = stdout_lines.slice(2, stdout_lines.size())
+
+	output[0] = "\n".join(stdout_lines)
+
 	command_result = {
-		"success": filtered_output[0].is_empty() if filtered_output.size() > 0 else true,
-		"output": filtered_output
+		"success": output[0].is_empty(),
+		"output": output,
 	}
