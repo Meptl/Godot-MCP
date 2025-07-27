@@ -4,3 +4,4 @@
   scene editor override the script's default values, check the actual scene
   instance properties when debugging mismatches
 - Prefer signals for communication between nodes
+- You must call godot-mcp:save_scene after modifying the scene through godot-mcp
