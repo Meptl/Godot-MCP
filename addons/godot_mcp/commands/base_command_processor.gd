@@ -79,7 +79,6 @@ func _get_editor_node(path: String) -> Node:
 	if not scene_root:
 		print("No edited scene found")
 		return null
-	print("NODE NAME: ", scene_root.name)
 
 	# Check special paths.
 	if path in ["/root", "/root/", "", "/root/" + scene_root.name]:
@@ -98,7 +97,6 @@ func _get_editor_node(path: String) -> Node:
 
 	# Remove "/root/SceneRoot/"
 	var len = 6 + scene_root.name.length() + 1
-	print("Searching ", path.substr(len))
 	return scene_root.get_node_or_null(path.substr(len))
 
 
