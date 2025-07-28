@@ -14,18 +14,6 @@ func _validate_and_get_edited_scene():
 	return edited_scene_root
 
 
-func _validate_and_get_node(node_path: String):
-	if node_path.is_empty():
-		command_result = {"error": "Node path cannot be empty"}
-		return null
-
-	var node = _get_editor_node(node_path)
-	if not node:
-		command_result = {"error": "Node not found: %s" % node_path}
-		return null
-
-	return node
-
 
 func _validate_property_exists(node: Node, property_name: String) -> bool:
 	if not property_name in node:
@@ -117,8 +105,7 @@ func _delete_node(params: Dictionary) -> void:
 	if not edited_scene_root:
 		return
 
-	# Get and validate the node
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
@@ -157,8 +144,7 @@ func _update_node_property(params: Dictionary) -> void:
 		command_result = {"error": "Property value cannot be null"}
 		return
 
-	# Get and validate the node
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
@@ -189,8 +175,7 @@ func _update_node_properties(params: Dictionary) -> void:
 		command_result = {"error": "Properties dictionary cannot be empty"}
 		return
 
-	# Get and validate the node
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
@@ -217,8 +202,7 @@ func _update_node_properties(params: Dictionary) -> void:
 func _get_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 
-	# Get and validate the node
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
@@ -261,8 +245,7 @@ func _attach_script(params: Dictionary) -> void:
 		command_result = {"error": "Script file not found: %s" % script_path}
 		return
 
-	# Get and validate the node
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
@@ -304,13 +287,11 @@ func _reparent_node(params: Dictionary) -> void:
 	if not edited_scene_root:
 		return
 
-	# Get and validate the node to move
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 
-	# Get and validate the new parent
-	var new_parent = _validate_and_get_node(new_parent_path)
+	var new_parent = _get_editor_node(new_parent_path)
 	if not new_parent:
 		return
 
@@ -380,7 +361,7 @@ func _change_node_type(params: Dictionary) -> void:
 	if not edited_scene_root:
 		return
 	
-	var node = _validate_and_get_node(node_path)
+	var node = _get_editor_node(node_path)
 	if not node:
 		return
 	
