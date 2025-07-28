@@ -278,7 +278,7 @@ export const nodeTools: MCPTool[] = [
         });
         
         const derivatives = result.derivatives || [];
-        return `Derivatives of ${base_class}:\n${derivatives.join('\n')}`;
+        return derivatives.join('\n');
       } catch (error) {
         throw new Error(`Failed to get class derivatives: ${(error as Error).message}`);
       }
