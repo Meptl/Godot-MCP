@@ -15,12 +15,6 @@ func _validate_and_get_edited_scene():
 
 
 
-func _validate_property_exists(node: Node, property_name: String) -> bool:
-	if not property_name in node:
-		command_result = {"error": "Property %s does not exist on node" % property_name}
-		return false
-	return true
-
 
 func _handle_command(command_type: String, params: Dictionary) -> bool:
 	match command_type:
@@ -149,7 +143,8 @@ func _update_node_property(params: Dictionary) -> void:
 		return
 
 	# Check if the property exists
-	if not _validate_property_exists(node, property_name):
+	if not property_name in node:
+		command_result = {"error": "Property %s does not exist on node" % property_name}
 		return
 
 	# Parse property value for Godot types
@@ -181,7 +176,8 @@ func _update_node_properties(params: Dictionary) -> void:
 
 	# Validate all properties exist before updating any
 	for property_name in properties:
-		if not _validate_property_exists(node, property_name):
+		if not property_name in node:
+			command_result = {"error": "Property %s does not exist on node" % property_name}
 			return
 
 	var updated_properties = []
