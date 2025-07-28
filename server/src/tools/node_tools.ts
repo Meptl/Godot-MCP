@@ -48,6 +48,10 @@ interface ChangeNodeTypeParams {
   node_type: string;
 }
 
+interface ClassDerivativesParams {
+  base_class: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -254,6 +258,29 @@ export const nodeTools: MCPTool[] = [
         return `Changed node at ${result.node_path} to ${result.node_type}`;
       } catch (error) {
         throw new Error(`Failed to change node type: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'class_derivatives',
+    description: 'Get all classes that derive from a specific base class, including the base class itself',
+    parameters: z.object({
+      base_class: z.string()
+        .describe('The base class name to find derivatives for (e.g. "Shape3D", "PhysicsMaterial")'),
+    }),
+    execute: async ({ base_class }: ClassDerivativesParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('class_derivatives', {
+          base_class,
+        });
+        
+        const derivatives = result.derivatives || [];
+        return `Derivatives of ${base_class}:\n${derivatives.join('\n')}`;
+      } catch (error) {
+        throw new Error(`Failed to get class derivatives: ${(error as Error).message}`);
       }
     },
   },

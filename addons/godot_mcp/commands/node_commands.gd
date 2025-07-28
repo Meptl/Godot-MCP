@@ -60,6 +60,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"change_node_type":
 			_change_node_type(params)
 			return true
+		"class_derivatives":
+			_class_derivatives(params)
+			return true
 	return false  # Command not handled
 
 
@@ -441,5 +444,29 @@ func _change_node_type(params: Dictionary) -> void:
 	command_result = {
 		"node_path": str(new_node.get_path()),
 		"node_type": new_node_type
+	}
+
+
+func _class_derivatives(params: Dictionary) -> void:
+	var base_class = params.get("base_class", "")
+	
+	if base_class.is_empty():
+		command_result = {"error": "Base class cannot be empty"}
+		return
+	
+	if not ClassDB.class_exists(base_class):
+		command_result = {"error": "Base class does not exist: %s" % base_class}
+		return
+	
+	# Get all classes that inherit from the base class
+	var inheritors = ClassDB.get_inheriters_from_class(base_class)
+	
+	# Create a list that includes the base class itself and all inheritors
+	var derivatives = [base_class]
+	derivatives.append_array(inheritors)
+	
+	command_result = {
+		"base_class": base_class,
+		"derivatives": derivatives
 	}
 
