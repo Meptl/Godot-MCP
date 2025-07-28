@@ -78,6 +78,7 @@ func _get_editor_node(path: String) -> Node:
 	var scene_root = EditorInterface.get_edited_scene_root()
 	if not scene_root:
 		print("No edited scene found")
+		command_result = {"error": "No scene is currently being edited"}
 		return null
 
 	# Check special paths.
@@ -88,11 +89,16 @@ func _get_editor_node(path: String) -> Node:
 		# This is a relative path.
 		if not path.begins_with(scene_root.name):
 			# Don't search outside of scene.
+			command_result = {"error": "Node not found: %s" % path}
 			return null
-		return scene_root.get_parent().get_node_or_null(path)
+		var node = scene_root.get_parent().get_node_or_null(path)
+		if not node:
+			command_result = {"error": "Node not found: %s" % path}
+		return node
 
 	if not path.begins_with('/root/' + scene_root.name):
 		# Absolute paths _must_ start with /root/SceneRoot
+		command_result = {"error": "Node not found: %s" % path}
 		return null
 
 	# Remove "/root/SceneRoot/"
