@@ -150,7 +150,7 @@ func _update_node_property(params: Dictionary) -> void:
 	# Parse property value for Godot types
 	var parsed_value = _parse_property_value(property_value)
 
-	node.set(property_name, parsed_value)
+	node.set_indexed(property_name, parsed_value)
 	_mark_scene_modified()
 
 	command_result = {
@@ -184,7 +184,7 @@ func _update_node_properties(params: Dictionary) -> void:
 
 	for property_name in properties:
 		var parsed_value = _parse_property_value(properties[property_name])
-		node.set(property_name, parsed_value)
+		node.set_indexed(property_name, parsed_value)
 		updated_properties.append(property_name)
 	_mark_scene_modified()
 
@@ -446,4 +446,3 @@ func _class_derivatives(params: Dictionary) -> void:
 		"base_class": base_class,
 		"derivatives": derivatives
 	}
-
