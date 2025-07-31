@@ -205,16 +205,50 @@ func _get_node_properties(params: Dictionary) -> void:
 	if not node:
 		return
 
-	# Get all properties
 	var properties = {}
-	var property_list = node.get_property_list()
-
-	for prop in property_list:
-		var name = prop["name"]
-		if not name.begins_with("_"):  # Skip internal properties
-			properties[name] = node.get(name)
+	_collect_properties_recursive(node, "", properties, 0, 3)
 
 	command_result = {"node_path": node_path, "properties": properties}
+
+
+func _collect_properties_recursive(obj: Object, prefix: String, properties: Dictionary, current_depth: int, max_depth: int) -> void:
+	if current_depth >= max_depth or obj == null:
+		return
+	
+	var property_list = obj.get_property_list()
+	
+	for prop in property_list:
+		var name = prop["name"]
+		if name.begins_with("_"):
+			continue
+			
+		var full_name = name if prefix.is_empty() else prefix + ":" + name
+		var value = obj.get(name)
+		
+		if value == null or not (value is Object):
+			properties[full_name] = value
+		else:
+			properties[full_name] = str(value)
+			
+			if _should_skip_object_recursion(value):
+				continue
+				
+			_collect_properties_recursive(value, full_name, properties, current_depth + 1, max_depth)
+
+
+func _should_skip_object_recursion(obj: Object) -> bool:
+	if obj is Node:
+		return true
+	if obj is Resource and obj.get_path().is_empty():
+		return false
+	if obj is PackedScene:
+		return true
+	if obj is Script:
+		return true
+	if obj is SceneMultiplayer:
+		return true
+		
+	return false
 
 
 
@@ -454,7 +488,7 @@ func _class_derivatives(params: Dictionary) -> void:
 func _initialize_property(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var property_path = params.get("property_path", "")
-	var class_name = params.get("class_name", "")
+	var cls_name = params.get("class_name", "")
 	
 	if node_path.is_empty():
 		command_result = {"error": "Node path cannot be empty"}
@@ -464,18 +498,18 @@ func _initialize_property(params: Dictionary) -> void:
 		command_result = {"error": "Property path cannot be empty"}
 		return
 	
-	if class_name.is_empty():
+	if cls_name.is_empty():
 		command_result = {"error": "Class name cannot be empty"}
 		return
 	
 	# Check if the class exists
-	if not ClassDB.class_exists(class_name):
-		command_result = {"error": "Class does not exist: %s" % class_name}
+	if not ClassDB.class_exists(cls_name):
+		command_result = {"error": "Class does not exist: %s" % cls_name}
 		return
 	
 	# Check if the class can be instantiated (skip builtin types)
-	if not ClassDB.can_instantiate(class_name):
-		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % class_name}
+	if not ClassDB.can_instantiate(cls_name):
+		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % cls_name}
 		return
 	
 	var node = _get_editor_node(node_path)
@@ -518,18 +552,18 @@ func _initialize_property(params: Dictionary) -> void:
 	if expected_class_names.size() > 0:
 		var is_valid_class = false
 		for expected_class in expected_class_names:
-			if expected_class == class_name or ClassDB.is_parent_class(class_name, expected_class):
+			if expected_class == cls_name or ClassDB.is_parent_class(cls_name, expected_class):
 				is_valid_class = true
 				break
 		
 		if not is_valid_class:
-			command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [class_name, property_path, expected_class_names]}
+			command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [cls_name, property_path, expected_class_names]}
 			return
 	
 	# Create an instance of the class
-	var instance = ClassDB.instantiate(class_name)
+	var instance = ClassDB.instantiate(cls_name)
 	if not instance:
-		command_result = {"error": "Failed to instantiate class: %s" % class_name}
+		command_result = {"error": "Failed to instantiate class: %s" % cls_name}
 		return
 	
 	# Set the property to the new instance
@@ -539,6 +573,6 @@ func _initialize_property(params: Dictionary) -> void:
 	command_result = {
 		"node_path": node_path,
 		"property_path": property_path,
-		"class_name": class_name,
+		"class_name": cls_name,
 		"success": true
 	}

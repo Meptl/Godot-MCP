@@ -176,8 +176,9 @@ export const nodeTools: MCPTool[] = [
       try {
         const result = await godot.sendCommand<CommandResult>('get_node_properties', { node_path });
         
-        // Format properties for display
-        const formattedProperties = Object.entries(result.properties)
+        const sortedEntries = Object.entries(result.properties).sort(([a], [b]) => a.localeCompare(b));
+        
+        const formattedProperties = sortedEntries
           .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
           .join('\n');
         
