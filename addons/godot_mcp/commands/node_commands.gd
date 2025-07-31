@@ -228,12 +228,38 @@ func _collect_properties_recursive(obj: Object, prefix: String, properties: Dict
 		if value == null or not (value is Object):
 			properties[full_name] = value
 		else:
-			properties[full_name] = str(value)
+			properties[full_name] = _format_value(value)
 			
 			if _should_skip_object_recursion(value):
 				continue
 				
 			_collect_properties_recursive(value, full_name, properties, current_depth + 1, max_depth)
+
+
+func _format_value(value) -> String:
+	if value is Vector3:
+		var v = value as Vector3
+		return "Vector3(%g, %g, %g)" % [v.x, v.y, v.z]
+	elif value is Vector2:
+		var v = value as Vector2
+		return "Vector2(%g, %g)" % [v.x, v.y]
+	elif value is Vector4:
+		var v = value as Vector4
+		return "Vector4(%g, %g, %g, %g)" % [v.x, v.y, v.z, v.w]
+	elif value is Transform3D:
+		var t = value as Transform3D
+		return "Transform3D(%s, %s)" % [_format_value(t.basis), _format_value(t.origin)]
+	elif value is Basis:
+		var b = value as Basis
+		return "Basis(%s, %s, %s)" % [_format_value(b.x), _format_value(b.y), _format_value(b.z)]
+	elif value is Quaternion:
+		var q = value as Quaternion
+		return "Quaternion(%g, %g, %g, %g)" % [q.x, q.y, q.z, q.w]
+	elif value is AABB:
+		var a = value as AABB
+		return "AABB(%s, %s)" % [_format_value(a.position), _format_value(a.size)]
+	else:
+		return str(value)
 
 
 func _should_skip_object_recursion(obj: Object) -> bool:
