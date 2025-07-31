@@ -116,9 +116,9 @@ export const nodeTools: MCPTool[] = [
       node_path: z.string()
         .describe('Path to the node to update (e.g. "/root/MainScene/Player")'),
       property: z.string()
-        .describe('Name of the property to update (e.g. "position", "text", "modulate")'),
+        .describe('Name of the property to update (e.g. "position", "text", "modulate"). Supports indexed properties like "mesh:size" for nested object properties'),
       value: z.any()
-        .describe('New value for the property'),
+        .describe('New value for the property. For builtin types, use constructor syntax like "Vector3(1.0, 1.0, 1.0)"'),
     }),
     execute: async ({ node_path, property, value }: UpdateNodePropertyParams): Promise<string> => {
       const godot = getGodotConnection();
@@ -144,7 +144,7 @@ export const nodeTools: MCPTool[] = [
       node_path: z.string()
         .describe('Path to the node to update (e.g. "/root/MainScene/Player")'),
       properties: z.record(z.any())
-        .describe('Object containing property names and their new values'),
+        .describe('Object containing property names and their new values. Supports indexed properties like "mesh:size" for nested object properties. For builtin types, use constructor syntax like "Vector3(1.0, 1.0, 1.0)"'),
     }),
     execute: async ({ node_path, properties }: UpdateNodePropertiesParams): Promise<string> => {
       const godot = getGodotConnection();

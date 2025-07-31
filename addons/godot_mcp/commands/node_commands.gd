@@ -145,8 +145,9 @@ func _update_node_property(params: Dictionary) -> void:
 	if not node:
 		return
 
-	# Check if the property exists
-	if not property_name in node:
+	# Check if the property exists. Accommodate indexed properties.
+	var first_prop = property_name.split(":")[0]
+	if not first_prop in node:
 		command_result = {"error": "Property %s does not exist on node" % property_name}
 		return
 
@@ -167,33 +168,16 @@ func _update_node_property(params: Dictionary) -> void:
 func _update_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var properties = params.get("properties", {})
-
-	# Basic validation
-	if properties.is_empty():
-		command_result = {"error": "Properties dictionary cannot be empty"}
-		return
-
-	var node = _get_editor_node(node_path)
-	if not node:
-		return
-
-	# Validate all properties exist before updating any
-	for property_name in properties:
-		if not property_name in node:
-			command_result = {"error": "Property %s does not exist on node" % property_name}
-			return
-
-	var updated_properties = []
-
-	for property_name in properties:
-		var parsed_value = _parse_property_value(properties[property_name])
-		node.set_indexed(property_name, parsed_value)
-		updated_properties.append(property_name)
-	_mark_scene_modified()
+	for prop in properties:
+		var parsed_value = _parse_property_value(properties[prop])
+		_update_node_property({
+			"node_path": node_path,
+			"property": prop,
+			"value": properties[prop]
+		})
 
 	command_result = {
 		"node_path": node_path,
-		"updated_properties": updated_properties,
 		"properties": properties
 	}
 
