@@ -237,6 +237,7 @@ func _collect_properties_recursive(obj: Object, prefix: String, properties: Dict
 
 
 func _format_value(value) -> String:
+	# Handle builtins.
 	if value is Vector3:
 		var v = value as Vector3
 		return "Vector3(%g, %g, %g)" % [v.x, v.y, v.z]
