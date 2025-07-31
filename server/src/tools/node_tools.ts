@@ -52,6 +52,12 @@ interface ClassDerivativesParams {
   base_class: string;
 }
 
+interface InitializePropertyParams {
+  node_path: string;
+  property_path: string;
+  class_name: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -281,6 +287,34 @@ export const nodeTools: MCPTool[] = [
         return derivatives.join('\n');
       } catch (error) {
         throw new Error(`Failed to get class derivatives: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'initialize_property',
+    description: 'Initialize a property of a node with an object of the given class',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node (e.g. "/root/MainScene/Player")'),
+      property_path: z.string()
+        .describe('Path to the property to initialize (e.g. "collision_shape", "texture")'),
+      class_name: z.string()
+        .describe('Name of the class to instantiate for the property (e.g. "RectangleShape2D", "Texture2D")'),
+    }),
+    execute: async ({ node_path, property_path, class_name }: InitializePropertyParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('initialize_property', {
+          node_path,
+          property_path,
+          class_name,
+        });
+        
+        return `Initialized property "${property_path}" of node at ${node_path} with ${class_name} instance`;
+      } catch (error) {
+        throw new Error(`Failed to initialize property: ${(error as Error).message}`);
       }
     },
   },

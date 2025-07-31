@@ -45,6 +45,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"class_derivatives":
 			_class_derivatives(params)
 			return true
+		"initialize_property":
+			_initialize_property(params)
+			return true
 	return false  # Command not handled
 
 
@@ -445,4 +448,97 @@ func _class_derivatives(params: Dictionary) -> void:
 	command_result = {
 		"base_class": base_class,
 		"derivatives": derivatives
+	}
+
+
+func _initialize_property(params: Dictionary) -> void:
+	var node_path = params.get("node_path", "")
+	var property_path = params.get("property_path", "")
+	var class_name = params.get("class_name", "")
+	
+	if node_path.is_empty():
+		command_result = {"error": "Node path cannot be empty"}
+		return
+	
+	if property_path.is_empty():
+		command_result = {"error": "Property path cannot be empty"}
+		return
+	
+	if class_name.is_empty():
+		command_result = {"error": "Class name cannot be empty"}
+		return
+	
+	# Check if the class exists
+	if not ClassDB.class_exists(class_name):
+		command_result = {"error": "Class does not exist: %s" % class_name}
+		return
+	
+	# Check if the class can be instantiated (skip builtin types)
+	if not ClassDB.can_instantiate(class_name):
+		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % class_name}
+		return
+	
+	var node = _get_editor_node(node_path)
+	if not node:
+		return
+	
+	# Check if the property exists on the node
+	if not property_path in node:
+		command_result = {"error": "Property %s does not exist on node" % property_path}
+		return
+	
+	# Get the property information to check its type
+	var property_list = node.get_property_list()
+	var property_info = null
+	
+	for prop in property_list:
+		if prop["name"] == property_path:
+			property_info = prop
+			break
+	
+	if not property_info:
+		command_result = {"error": "Property information not found for: %s" % property_path}
+		return
+	
+	# Check if the property type is TYPE_OBJECT
+	if property_info["type"] != TYPE_OBJECT:
+		command_result = {"error": "Property %s is not of TYPE_OBJECT (type: %s)" % [property_path, property_info["type"]]}
+		return
+	
+	# Get the expected class for this property (from class_name in property info)
+	var expected_class_names = []
+	if property_info.has("class_name") and not property_info["class_name"].is_empty():
+		# class_name can be comma-separated
+		var class_name_str = str(property_info["class_name"])
+		expected_class_names = class_name_str.split(",")
+		for i in range(expected_class_names.size()):
+			expected_class_names[i] = expected_class_names[i].strip_edges()
+	
+	# Verify that the specified class is valid for this property
+	if expected_class_names.size() > 0:
+		var is_valid_class = false
+		for expected_class in expected_class_names:
+			if expected_class == class_name or ClassDB.is_parent_class(class_name, expected_class):
+				is_valid_class = true
+				break
+		
+		if not is_valid_class:
+			command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [class_name, property_path, expected_class_names]}
+			return
+	
+	# Create an instance of the class
+	var instance = ClassDB.instantiate(class_name)
+	if not instance:
+		command_result = {"error": "Failed to instantiate class: %s" % class_name}
+		return
+	
+	# Set the property to the new instance
+	node.set(property_path, instance)
+	_mark_scene_modified()
+	
+	command_result = {
+		"node_path": node_path,
+		"property_path": property_path,
+		"class_name": class_name,
+		"success": true
 	}
