@@ -91,7 +91,7 @@ func _create_node(params: Dictionary) -> void:
 	node.owner = edited_scene_root
 	_mark_scene_modified()
 
-	command_result = {"node_path": parent_path + "/" + node_name}
+	command_result = {"node_path": str(node.get_path())}
 
 
 func _delete_node(params: Dictionary) -> void:
