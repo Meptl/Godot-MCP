@@ -84,14 +84,21 @@ func _create_node(params: Dictionary) -> void:
 		command_result = {"error": "Failed to create node of type: %s" % node_type}
 		return
 
-	# Set the node name
-	node.name = node_name
+	# Find a unique name by checking existing children and adding numeric suffix if needed
+	var unique_name = node_name
+	var suffix = 2
+	while parent.has_node(unique_name):
+		unique_name = node_name + str(suffix)
+		suffix += 1
+	
+	# Set the unique node name
+	node.name = unique_name
 
 	parent.add_child(node)
 	node.owner = edited_scene_root
 	_mark_scene_modified()
 
-	command_result = {"node_path": str(node.get_path())}
+	command_result = {"node_path": parent_path.rstrip("/") + "/" + unique_name}
 
 
 func _delete_node(params: Dictionary) -> void:
