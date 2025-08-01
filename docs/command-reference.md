@@ -52,6 +52,26 @@ Get all properties of a node.
 Show me all the properties of the node at "/root/MainScene/Player".
 ```
 
+### get_node_property_type
+Get the type and value of a specific property of a node. Supports indexed properties for nested objects.
+
+**Parameters:**
+- `node_path` - Path to the node to inspect
+- `property_name` - Name of the property to get type information for. Supports indexed properties using colon notation (e.g., "mesh:size", "material:albedo_color")
+
+**Returns:**
+- `value` - The current value of the property
+- `type` - The Godot type name as a string (e.g., "Vector2", "String", "Object")
+- `type_id` - The numeric Variant type ID
+- `class_name` - For Object types, comma-separated list of valid class names
+
+**Examples:**
+```
+Get the type of the "position" property for the node at "/root/MainScene/Player".
+Get the type of the "mesh:size" nested property for the node at "/root/MainScene/MeshInstance3D".
+Get the type of the "material:albedo_color" property for a node with material.
+```
+
 
 ## Script Tools
 

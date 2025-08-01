@@ -30,6 +30,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"get_node_properties":
 			_get_node_properties(params)
 			return true
+		"get_node_property_type":
+			_get_node_property_type(params)
+			return true
 		"update_node_properties":
 			_update_node_properties(params)
 			return true
@@ -90,7 +93,7 @@ func _create_node(params: Dictionary) -> void:
 	while parent.has_node(unique_name):
 		unique_name = node_name + str(suffix)
 		suffix += 1
-	
+
 	# Set the unique node name
 	node.name = unique_name
 
@@ -202,28 +205,105 @@ func _get_node_properties(params: Dictionary) -> void:
 	command_result = {"node_path": node_path, "properties": properties}
 
 
+func _get_node_property_type(params: Dictionary) -> void:
+	var node_path = params.get("node_path", "")
+	var property_name = params.get("property_name", "")
+
+	if property_name.is_empty():
+		command_result = {"error": "Property name cannot be empty"}
+		return
+
+	var node = _get_editor_node(node_path)
+	if not node:
+		return
+
+	# Check if the first property exists
+	var first_prop = property_name.split(":")[0]
+	if not first_prop in node:
+		command_result = {"error": "Property %s does not exist on node" % first_prop}
+		return
+
+	# Use recursive helper to get the property type information
+	var property_parts = property_name.split(":")
+	var type_result = _get_property_type_recursive(node, property_parts)
+
+	if type_result.has("error"):
+		command_result = {
+			'error': "Failed to get property type for node %s and property %s: %s" % [node_path, property_name, type_result["error"]]
+		}
+		return
+
+	command_result = {
+		"node_path": node_path,
+		"property_name": property_name,
+		"value": node.get_indexed(property_name),
+		"type": type_result["type"],
+	}
+
+
+func _get_property_type_recursive(obj, property_parts: Array) -> Dictionary:
+	match [obj, property_parts.size()]:
+		[null, _]:
+			# Was an invalid property_path to start (we hit a null).
+			return {"error": "Cannot get property on null. Remaining property parts: %s" % property_parts}
+		[_, 0]:
+			# This shouldn't happen.
+			return {"error": "_get_property_type_recursive called with empty property_parts"}
+		[_, 1]:
+			var prop_name = property_parts[0]
+			# We stop at 1 because we need the parent node of the path for field information.
+			if typeof(obj) == TYPE_OBJECT:
+				var prop_list = obj.get_property_list()
+				var prop_info = null
+
+				for prop in prop_list:
+					if prop["name"] == prop_name:
+						prop_info = prop
+						break
+
+				if prop_info == null:
+					return {"error": "Property %s not found in %s" % [prop_name, obj]}
+				if prop_info.type == TYPE_OBJECT:
+					return { 'type': prop_info.class_name }
+				else:
+					return {"type": _type_to_string(prop_info.type) }
+			else:
+				# I'm assuming builtins only have primitive fields.
+				var prop_check = _builtin_has_prop(obj, prop_name)
+				if prop_check.has("error"):
+					return prop_check
+				
+				if not prop_check["result"]:
+					return {"error": "Property %s not found in %s" % [prop_name, obj]}
+
+				var prop_val = obj[prop_name]
+				return {"type": _type_to_string(typeof(prop_val))}
+		_:
+			return _get_property_type_recursive(obj[property_parts[0]], property_parts.slice(1))
+
+
 func _collect_properties_recursive(obj: Object, prefix: String, properties: Dictionary, current_depth: int, max_depth: int) -> void:
 	if current_depth >= max_depth or obj == null:
 		return
-	
+
 	var property_list = obj.get_property_list()
-	
+
 	for prop in property_list:
 		var name = prop["name"]
 		if name.begins_with("_"):
 			continue
-			
+
 		var full_name = name if prefix.is_empty() else prefix + ":" + name
 		var value = obj.get(name)
-		
+
 		if value == null or not (value is Object):
 			properties[full_name] = value
 		else:
 			properties[full_name] = str(value)
-			
+
 			if _should_skip_object_recursion(value):
 				continue
-				
+
 			_collect_properties_recursive(value, full_name, properties, current_depth + 1, max_depth)
 
 
@@ -238,16 +318,16 @@ func _should_skip_object_recursion(obj: Object) -> bool:
 		return true
 	if obj is SceneMultiplayer:
 		return true
-		
+
 	return false
 
 
 func _parse_property_value(value):
 	# Only try to parse strings that look like they could be Godot types
 	if typeof(value) == TYPE_STRING and (
-		value.begins_with("Vector") or 
-		value.begins_with("Transform") or 
-		value.begins_with("Rect") or 
+		value.begins_with("Vector") or
+		value.begins_with("Transform") or
+		value.begins_with("Rect") or
 		value.begins_with("Color") or
 		value.begins_with("Quat") or
 		value.begins_with("Basis") or
@@ -267,7 +347,7 @@ func _parse_property_value(value):
 	):
 		var expression = Expression.new()
 		var error = expression.parse(value, [])
-		
+
 		if error == OK:
 			var result = expression.execute([], null, true)
 			if not expression.has_execute_failed():
@@ -277,7 +357,7 @@ func _parse_property_value(value):
 				print("Failed to execute expression for: %s" % value)
 		else:
 			print("Failed to parse expression: %s (Error: %d)" % [value, error])
-	
+
 	# Otherwise, return value as is
 	return value
 
@@ -404,66 +484,66 @@ func _reparent_node(params: Dictionary) -> void:
 func _change_node_type(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var new_node_type = params.get("node_type", "")
-	
+
 	if node_path.is_empty():
 		command_result = {"error": "Node path cannot be empty"}
 		return
-	
+
 	if new_node_type.is_empty():
 		command_result = {"error": "Node type cannot be empty"}
 		return
-	
+
 	if not ClassDB.class_exists(new_node_type):
 		command_result = {"error": "Invalid node type: %s" % new_node_type}
 		return
-	
+
 	if not ClassDB.can_instantiate(new_node_type):
 		command_result = {"error": "Cannot instantiate node of type: %s" % new_node_type}
 		return
-	
+
 	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
 		return
-	
+
 	var node = _get_editor_node(node_path)
 	if not node:
 		return
-	
+
 	var is_root = node == edited_scene_root
 	var parent = node.get_parent()
 	var node_index = node.get_index()
 	var node_name = node.name
 	var node_owner = node.owner
-	
+
 	if not is_root and not parent:
 		command_result = {"error": "Node has no parent: %s" % node_path}
 		return
-	
+
 	var properties = {}
 	var property_list = node.get_property_list()
 	for prop in property_list:
 		var prop_name = prop["name"]
 		if not prop_name.begins_with("_") and prop_name != "name":
 			properties[prop_name] = node.get(prop_name)
-	
+
 	var attached_script = node.get_script()
 	var children = []
 	for child in node.get_children():
 		children.append(child)
 		node.remove_child(child)
-	
+
 	if not is_root:
 		parent.remove_child(node)
-	
+
 	node.queue_free()
-	
+
 	var new_node = ClassDB.instantiate(new_node_type)
 	if not new_node:
 		command_result = {"error": "Failed to create node of type: %s" % new_node_type}
 		return
-	
+
 	new_node.name = node_name
-	
+
 	if is_root:
 		# Use the correct SceneTree API for root nodes
 		get_tree().set_edited_scene_root(new_node)
@@ -471,21 +551,21 @@ func _change_node_type(params: Dictionary) -> void:
 		parent.add_child(new_node)
 		parent.move_child(new_node, node_index)
 		new_node.owner = node_owner
-	
+
 	for property_name in properties:
 		if property_name in new_node:
 			new_node.set(property_name, properties[property_name])
-	
+
 	if attached_script:
 		new_node.set_script(attached_script)
-	
+
 	for child in children:
 		new_node.add_child(child)
 		if is_root:
 			child.owner = new_node
-	
+
 	_mark_scene_modified()
-	
+
 	command_result = {
 		"node_path": str(new_node.get_path()),
 		"node_type": new_node_type
@@ -494,22 +574,22 @@ func _change_node_type(params: Dictionary) -> void:
 
 func _class_derivatives(params: Dictionary) -> void:
 	var base_class = params.get("base_class", "")
-	
+
 	if base_class.is_empty():
 		command_result = {"error": "Base class cannot be empty"}
 		return
-	
+
 	if not ClassDB.class_exists(base_class):
 		command_result = {"error": "Base class does not exist: %s" % base_class}
 		return
-	
+
 	# Get all classes that inherit from the base class
 	var inheritors = ClassDB.get_inheriters_from_class(base_class)
-	
+
 	# Create a list that includes the base class itself and all inheritors
 	var derivatives = [base_class]
 	derivatives.append_array(inheritors)
-	
+
 	command_result = {
 		"base_class": base_class,
 		"derivatives": derivatives
@@ -520,56 +600,56 @@ func _initialize_property(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var property_path = params.get("property_path", "")
 	var cls_name = params.get("class_name", "")
-	
+
 	if node_path.is_empty():
 		command_result = {"error": "Node path cannot be empty"}
 		return
-	
+
 	if property_path.is_empty():
 		command_result = {"error": "Property path cannot be empty"}
 		return
-	
+
 	if cls_name.is_empty():
 		command_result = {"error": "Class name cannot be empty"}
 		return
-	
+
 	# Check if the class exists
 	if not ClassDB.class_exists(cls_name):
 		command_result = {"error": "Class does not exist: %s" % cls_name}
 		return
-	
+
 	# Check if the class can be instantiated (skip builtin types)
 	if not ClassDB.can_instantiate(cls_name):
 		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % cls_name}
 		return
-	
+
 	var node = _get_editor_node(node_path)
 	if not node:
 		return
-	
+
 	# Check if the property exists on the node
 	if not property_path in node:
 		command_result = {"error": "Property %s does not exist on node" % property_path}
 		return
-	
+
 	# Get the property information to check its type
 	var property_list = node.get_property_list()
 	var property_info = null
-	
+
 	for prop in property_list:
 		if prop["name"] == property_path:
 			property_info = prop
 			break
-	
+
 	if not property_info:
 		command_result = {"error": "Property information not found for: %s" % property_path}
 		return
-	
+
 	# Check if the property type is TYPE_OBJECT
 	if property_info["type"] != TYPE_OBJECT:
 		command_result = {"error": "Property %s is not of TYPE_OBJECT (type: %s)" % [property_path, property_info["type"]]}
 		return
-	
+
 	# Get the expected class for this property (from class_name in property info)
 	var expected_class_names = []
 	if property_info.has("class_name") and not property_info["class_name"].is_empty():
@@ -578,7 +658,7 @@ func _initialize_property(params: Dictionary) -> void:
 		expected_class_names = class_name_str.split(",")
 		for i in range(expected_class_names.size()):
 			expected_class_names[i] = expected_class_names[i].strip_edges()
-	
+
 	# Verify that the specified class is valid for this property
 	if expected_class_names.size() > 0:
 		var is_valid_class = false
@@ -586,24 +666,152 @@ func _initialize_property(params: Dictionary) -> void:
 			if expected_class == cls_name or ClassDB.is_parent_class(cls_name, expected_class):
 				is_valid_class = true
 				break
-		
+
 		if not is_valid_class:
 			command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [cls_name, property_path, expected_class_names]}
 			return
-	
+
 	# Create an instance of the class
 	var instance = ClassDB.instantiate(cls_name)
 	if not instance:
 		command_result = {"error": "Failed to instantiate class: %s" % cls_name}
 		return
-	
+
 	# Set the property to the new instance
 	node.set(property_path, instance)
 	_mark_scene_modified()
-	
+
 	command_result = {
 		"node_path": node_path,
 		"property_path": property_path,
 		"class_name": cls_name,
 		"success": true
 	}
+
+
+func _type_to_string(type_id: int) -> String:
+	match type_id:
+		TYPE_NIL:
+			return "nil"
+		TYPE_BOOL:
+			return "bool"
+		TYPE_INT:
+			return "int"
+		TYPE_FLOAT:
+			return "float"
+		TYPE_STRING:
+			return "String"
+		TYPE_VECTOR2:
+			return "Vector2"
+		TYPE_VECTOR2I:
+			return "Vector2i"
+		TYPE_RECT2:
+			return "Rect2"
+		TYPE_RECT2I:
+			return "Rect2i"
+		TYPE_VECTOR3:
+			return "Vector3"
+		TYPE_VECTOR3I:
+			return "Vector3i"
+		TYPE_TRANSFORM2D:
+			return "Transform2D"
+		TYPE_VECTOR4:
+			return "Vector4"
+		TYPE_VECTOR4I:
+			return "Vector4i"
+		TYPE_PLANE:
+			return "Plane"
+		TYPE_QUATERNION:
+			return "Quaternion"
+		TYPE_AABB:
+			return "AABB"
+		TYPE_BASIS:
+			return "Basis"
+		TYPE_TRANSFORM3D:
+			return "Transform3D"
+		TYPE_PROJECTION:
+			return "Projection"
+		TYPE_COLOR:
+			return "Color"
+		TYPE_STRING_NAME:
+			return "StringName"
+		TYPE_NODE_PATH:
+			return "NodePath"
+		TYPE_RID:
+			return "RID"
+		TYPE_OBJECT:
+			return "Object"
+		TYPE_CALLABLE:
+			return "Callable"
+		TYPE_SIGNAL:
+			return "Signal"
+		TYPE_DICTIONARY:
+			return "Dictionary"
+		TYPE_ARRAY:
+			return "Array"
+		TYPE_PACKED_BYTE_ARRAY:
+			return "PackedByteArray"
+		TYPE_PACKED_INT32_ARRAY:
+			return "PackedInt32Array"
+		TYPE_PACKED_INT64_ARRAY:
+			return "PackedInt64Array"
+		TYPE_PACKED_FLOAT32_ARRAY:
+			return "PackedFloat32Array"
+		TYPE_PACKED_FLOAT64_ARRAY:
+			return "PackedFloat64Array"
+		TYPE_PACKED_STRING_ARRAY:
+			return "PackedStringArray"
+		TYPE_PACKED_VECTOR2_ARRAY:
+			return "PackedVector2Array"
+		TYPE_PACKED_VECTOR3_ARRAY:
+			return "PackedVector3Array"
+		TYPE_PACKED_COLOR_ARRAY:
+			return "PackedColorArray"
+		TYPE_PACKED_VECTOR4_ARRAY:
+			return "PackedVector4Array"
+		_:
+			return "unknown_type_%d" % type_id
+
+
+func _builtin_has_prop(obj, prop_name: String) -> Dictionary:
+	var obj_type = typeof(obj)
+	var type_name = _type_to_string(obj_type)
+
+	match obj_type:
+		TYPE_VECTOR2:
+			return {"result": prop_name in ["x", "y"]}
+		TYPE_VECTOR2I:
+			return {"result": prop_name in ["x", "y"]}
+		TYPE_VECTOR3:
+			return {"result": prop_name in ["x", "y", "z"]}
+		TYPE_VECTOR3I:
+			return {"result": prop_name in ["x", "y", "z"]}
+		TYPE_VECTOR4:
+			return {"result": prop_name in ["x", "y", "z", "w"]}
+		TYPE_VECTOR4I:
+			return {"result": prop_name in ["x", "y", "z", "w"]}
+		TYPE_RECT2:
+			return {"result": prop_name in ["position", "size", "end"]}
+		TYPE_RECT2I:
+			return {"result": prop_name in ["position", "size", "end"]}
+		TYPE_TRANSFORM2D:
+			return {"result": prop_name in ["x", "y", "origin"]}
+		TYPE_PLANE:
+			return {"result": prop_name in ["normal", "d", "x", "y", "z"]}
+		TYPE_QUATERNION:
+			return {"result": prop_name in ["x", "y", "z", "w"]}
+		TYPE_AABB:
+			return {"result": prop_name in ["position", "size", "end"]}
+		TYPE_BASIS:
+			return {"result": prop_name in ["x", "y", "z"]}
+		TYPE_TRANSFORM3D:
+			return {"result": prop_name in ["basis", "origin"]}
+		TYPE_PROJECTION:
+			return {"result": prop_name in ["x", "y", "z", "w"]}
+		TYPE_COLOR:
+			return {"result": prop_name in ["r", "g", "b", "a", "r8", "g8", "b8", "a8", "h", "s", "v"]}
+		TYPE_DICTIONARY:
+			return {"result": obj.has(prop_name)}
+		_:
+			# Unknown type or types we don't support
+			return {"error": "Type %s does not support property traversal" % type_name}

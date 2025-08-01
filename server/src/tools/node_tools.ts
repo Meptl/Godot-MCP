@@ -25,6 +25,11 @@ interface GetNodePropertiesParams {
   node_path: string;
 }
 
+interface GetNodePropertyTypeParams {
+  node_path: string;
+  property_name: string;
+}
+
 
 interface UpdateNodePropertiesParams {
   node_path: string;
@@ -189,6 +194,37 @@ export const nodeTools: MCPTool[] = [
     },
   },
 
+  {
+    name: 'get_node_property_type',
+    description: 'Get the type and value of a specific property of a node in the Godot scene tree',
+    parameters: z.object({
+      node_path: z.string()
+        .describe('Path to the node to inspect (e.g. "/root/MainScene/Player")'),
+      property_name: z.string()
+        .describe('Name of the property to get type information for (e.g. "position", "text", "modulate")'),
+    }),
+    execute: async ({ node_path, property_name }: GetNodePropertyTypeParams): Promise<string> => {
+      const godot = getGodotConnection();
+      
+      try {
+        const result = await godot.sendCommand<CommandResult>('get_node_property_type', { 
+          node_path, 
+          property_name 
+        });
+        
+        let output = `Property "${property_name}" of node at ${node_path}:\n`;
+        output += `  Type: ${result.type}`;
+        if (result.class_name) {
+          output += ` (Class: ${result.class_name})`;
+        }
+        output += `\n  Value: ${JSON.stringify(result.value)}`;
+        
+        return output;
+      } catch (error) {
+        throw new Error(`Failed to get node property type: ${(error as Error).message}`);
+      }
+    },
+  },
 
   {
     name: 'attach_script',
