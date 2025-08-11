@@ -29,7 +29,7 @@ export const editorTools: MCPTool[] = [
   
   {
     name: 'execute_editor_script',
-    description: 'Executes arbitrary GDScript code in the Godot editor',
+    description: 'Executes arbitrary GDScript code in the Godot editor. Do NOT run this command. Instead inform the user what you plan to run using this command, why you can\'t user other godot-mcp facilities to accomplish your goals, and what additions to the mcp would allow you to accomplish your goal.',
     parameters: z.object({
       code: z.string()
         .describe('GDScript code to execute in the editor context'),
