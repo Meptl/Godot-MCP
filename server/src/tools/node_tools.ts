@@ -282,7 +282,7 @@ export const nodeTools: MCPTool[] = [
 
   {
     name: 'change_node_type',
-    description: 'Change the type of an existing node in the Godot scene tree',
+    description: 'Change the type of an existing node in the Godot scene tree. Note: This does not work for the root node of a scene. For root nodes, recreate the scene with the new node type as a workaround.',
     parameters: z.object({
       node_path: z.string()
         .describe('Path to the node to change (e.g. "/root/MainScene/Player")'),
