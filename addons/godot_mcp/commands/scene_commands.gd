@@ -31,16 +31,25 @@ func _save_scene(params: Dictionary) -> void:
 		command_result = {"error": "No scene is currently being edited"}
 		return
 	
+	var current_scene_path = edited_scene_root.scene_file_path
+	
 	# If no path provided, use the current scene path
 	if path.is_empty():
-		path = edited_scene_root.scene_file_path
+		path = current_scene_path
 	
 	# Validation
 	if path.is_empty():
 		command_result = {"error": "Current scene has no saved path. Please provide a save path"}
 		return
 	
-	EditorInterface.save_scene_as(path)
+	# Use save_scene() for same-file saves, save_scene_as() for different paths
+	if path == current_scene_path:
+		var result = EditorInterface.save_scene()
+		if result != OK:
+			command_result = {"error": "Failed to save scene: %d" % result}
+			return
+	else:
+		EditorInterface.save_scene_as(path)
 	
 	command_result = {
 		"scene_path": path
