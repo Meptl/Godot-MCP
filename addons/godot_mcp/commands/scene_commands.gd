@@ -222,11 +222,12 @@ func _build_tree_output(node: Node, depth: int) -> String:
 	for i in depth + 1:
 		bullets += "- "
 	
-	var line = bullets + node.name + " (" + node.get_class() + ")\n"
+	var scene_output = "" if node.scene_file_path.is_empty() else "[%s]" % node.scene_file_path
+	var line = bullets + node.name + " (" + node.get_class() + ") " + scene_output + "\n"
 	
 	# Skip recursing into instanced scenes
 	# Instanced scenes have a scene_file_path property that is not empty
-	if not node.scene_file_path.is_empty():
+	if depth != 0 and not node.scene_file_path.is_empty():
 		return line
 	
 	for child in node.get_children():
