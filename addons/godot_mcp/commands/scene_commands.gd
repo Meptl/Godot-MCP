@@ -40,17 +40,7 @@ func _save_scene(params: Dictionary) -> void:
 		command_result = {"error": "Current scene has no saved path. Please provide a save path"}
 		return
 	
-	# Save the scene
-	var packed_scene = PackedScene.new()
-	var result = packed_scene.pack(edited_scene_root)
-	if result != OK:
-		command_result = {"error": "Failed to pack scene: %d" % result}
-		return
-	
-	result = ResourceSaver.save(packed_scene, path)
-	if result != OK:
-		command_result = {"error": "Failed to save scene: %d" % result}
-		return
+	EditorInterface.save_scene_as(path)
 	
 	command_result = {
 		"scene_path": path
