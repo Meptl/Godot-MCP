@@ -227,7 +227,6 @@ func _build_tree_output(node: Node, depth: int) -> String:
 	# Skip recursing into instanced scenes
 	# Instanced scenes have a scene_file_path property that is not empty
 	if not node.scene_file_path.is_empty():
-		# This is an instanced scene, don't recurse into its children
 		return line
 	
 	for child in node.get_children():
