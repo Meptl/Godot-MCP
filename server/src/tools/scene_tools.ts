@@ -6,7 +6,7 @@ import { MCPTool, CommandResult } from '../utils/types.js';
  * Type definitions for scene tool parameters
  */
 interface SaveSceneParams {
-  path: string;
+  path?: string;
 }
 
 interface OpenSceneParams {
@@ -48,14 +48,15 @@ export const sceneTools: MCPTool[] = [
     name: 'save_scene',
     description: 'Save the current scene to disk',
     parameters: z.object({
-      path: z.string()
-        .describe('Path where the scene will be saved (e.g. "res://scenes/main.tscn")'),
+      path: z.string().optional()
+        .describe('Optional path where the scene will be saved (e.g. "res://scenes/main.tscn")'),
     }),
     execute: async ({ path }: SaveSceneParams): Promise<string> => {
       const godot = getGodotConnection();
       
       try {
-        const result = await godot.sendCommand<CommandResult>('save_scene', { path });
+        const params = path ? { path } : {};
+        const result = await godot.sendCommand<CommandResult>('save_scene', params);
         return `Saved scene to ${result.scene_path}`;
       } catch (error) {
         throw new Error(`Failed to save scene: ${(error as Error).message}`);

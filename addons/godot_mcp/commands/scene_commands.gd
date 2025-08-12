@@ -26,25 +26,18 @@ func _save_scene(params: Dictionary) -> void:
 	
 	var edited_scene_root = EditorInterface.get_edited_scene_root()
 	
+	# Check if we have an edited scene
+	if not edited_scene_root:
+		command_result = {"error": "No scene is currently being edited"}
+		return
+	
 	# If no path provided, use the current scene path
-	if path.is_empty() and edited_scene_root:
+	if path.is_empty():
 		path = edited_scene_root.scene_file_path
 	
 	# Validation
 	if path.is_empty():
-		command_result = {"error": "Scene path cannot be empty"}
-		return
-	
-	# Make sure we have an absolute path
-	if not path.begins_with("res://"):
-		path = "res://" + path
-	
-	if not path.ends_with(".tscn"):
-		path += ".tscn"
-	
-	# Check if we have an edited scene
-	if not edited_scene_root:
-		command_result = {"error": "No scene is currently being edited"}
+		command_result = {"error": "Current scene has no saved path. Please provide a save path"}
 		return
 	
 	# Save the scene
