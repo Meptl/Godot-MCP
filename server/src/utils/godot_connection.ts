@@ -25,14 +25,13 @@ export interface GodotCommand {
 export class GodotConnection {
   private ws: WebSocket | null = null;
   private connected = false;
-  private retryTimer: NodeJS.Timeout | null = null;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
   private commandQueue: Map<string, {
     resolve: (value: any) => void;
     reject: (reason: any) => void;
     timeout: NodeJS.Timeout;
   }> = new Map();
   private commandId = 0;
-  private shouldReconnect = true;
   private url: string = 'ws://127.0.0.1:9080'
   private command_timeout: number = 10000
 
@@ -51,6 +50,11 @@ export class GodotConnection {
     this.ws.on('open', () => {
       this.connected = true;
       console.error(`Connected to Godot WebSocket server at ${this.url}.`);
+      this.heartbeatInterval = setInterval(() => {
+        if (this.ws) {
+          this.ws.ping();
+        }
+      }, 3000);
     });
 
     this.ws.on('message', (data: Buffer) => {
@@ -81,15 +85,14 @@ export class GodotConnection {
     this.ws.on('error', (error) => {
       const err = error as Error;
       console.error('WebSocket error:', err);
-      if (this.ws) {
-        this.ws.close();
-      }
-
-      setTimeout(() => this.connect(), 2000);
     });
 
     this.ws.on('close', () => {
       this.connected = false;
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
       this.ws = null;
 
       // Reject any pending commands
@@ -98,6 +101,8 @@ export class GodotConnection {
         command.reject(new Error('Connection closed'));
       });
       this.commandQueue.clear();
+
+      setTimeout(() => this.connect(), 2000);
     });
   }
 
@@ -145,6 +150,7 @@ export class GodotConnection {
    * Disconnects from the Godot WebSocket server
    */
   disconnect(): void {
+    console.error("Disconnecting from Godot WebSocket server.");
     if (this.ws) {
       // Clear all pending commands
       this.commandQueue.forEach((command, commandId) => {
