@@ -59,11 +59,6 @@ func _create_node(params: Dictionary) -> void:
 	var node_type = params.get("node_type", "Node")
 	var node_name = params.get("node_name", "NewNode")
 
-	# Validation
-	if not ClassDB.class_exists(node_type):
-		command_result = {"error": "Invalid node type: %s" % node_type}
-		return
-
 	# Get edited scene
 	var edited_scene_root = _validate_and_get_edited_scene()
 	if not edited_scene_root:
@@ -75,17 +70,43 @@ func _create_node(params: Dictionary) -> void:
 		command_result = {"error": "Parent node not found: %s" % parent_path}
 		return
 
-	# Create the node
 	var node
-	if ClassDB.can_instantiate(node_type):
-		node = ClassDB.instantiate(node_type)
+	
+	# Check if node_type is a scene resource path
+	if node_type.begins_with("res://"):
+		# Create from scene file
+		var scene_path = node_type
+		if not scene_path.ends_with(".tscn"):
+			scene_path += ".tscn"
+		
+		if not ResourceLoader.exists(scene_path):
+			command_result = {"error": "Scene file not found: %s" % scene_path}
+			return
+		
+		var packed_scene = ResourceLoader.load(scene_path)
+		if not packed_scene or not packed_scene is PackedScene:
+			command_result = {"error": "Failed to load scene: %s" % scene_path}
+			return
+		
+		node = packed_scene.instantiate()
+		if not node:
+			command_result = {"error": "Failed to instantiate scene: %s" % scene_path}
+			return
 	else:
-		command_result = {"error": "Cannot instantiate node of type: %s" % node_type}
-		return
+		# Create from node class type
+		if not ClassDB.class_exists(node_type):
+			command_result = {"error": "Invalid node type: %s" % node_type}
+			return
 
-	if not node:
-		command_result = {"error": "Failed to create node of type: %s" % node_type}
-		return
+		if ClassDB.can_instantiate(node_type):
+			node = ClassDB.instantiate(node_type)
+		else:
+			command_result = {"error": "Cannot instantiate node of type: %s" % node_type}
+			return
+
+		if not node:
+			command_result = {"error": "Failed to create node of type: %s" % node_type}
+			return
 
 	# Find a unique name by checking existing children and adding numeric suffix if needed
 	var unique_name = node_name

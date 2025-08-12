@@ -74,7 +74,7 @@ export const nodeTools: MCPTool[] = [
       parent_path: z.string()
         .describe('Path to the parent node where the new node will be created (e.g. "/root", "/root/MainScene")'),
       node_type: z.string()
-        .describe('Type of node to create (e.g. "Node2D", "Sprite2D", "Label")'),
+        .describe('Class type of node to create (e.g. "Node2D", "Sprite2D", "Label") or scene resource path (e.g. "res://scenes/Player.tscn")'),
       node_name: z.string()
         .describe('Name for the new node'),
     }),
