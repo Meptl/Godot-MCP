@@ -182,8 +182,22 @@ func _update_node_property(params: Dictionary) -> void:
 		command_result = {"error": "Property %s does not exist on node" % property_name}
 		return
 
+	# Get property type information for validation
+	var property_parts = property_name.split(":")
+	var type_result = _get_property_type_recursive(node, property_parts)
+	
+	if type_result.has("error"):
+		command_result = {"error": "Failed to get property type: %s" % type_result["error"]}
+		return
+
 	# Parse property value for Godot types
 	var parsed_value = _parse_property_value(property_value)
+
+	# Validate that parsed value is compatible with property type
+	var validation_result = _validate_property_value(parsed_value, type_result["type"])
+	if validation_result.has("error"):
+		command_result = {"error": "Invalid value for property %s: %s" % [property_name, validation_result["error"]]}
+		return
 
 	node.set_indexed(property_name, parsed_value)
 	_mark_scene_modified()
@@ -199,13 +213,17 @@ func _update_node_property(params: Dictionary) -> void:
 func _update_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var properties = params.get("properties", {})
+	
 	for prop in properties:
-		var parsed_value = _parse_property_value(properties[prop])
 		_update_node_property({
 			"node_path": node_path,
 			"property": prop,
 			"value": properties[prop]
 		})
+		
+		# If any property update failed, return the error
+		if command_result.has("error"):
+			return
 
 	command_result = {
 		"node_path": node_path,
@@ -836,3 +854,19 @@ func _builtin_has_prop(obj, prop_name: String) -> Dictionary:
 		_:
 			# Unknown type or types we don't support
 			return {"error": "Type %s does not support property traversal" % type_name}
+
+
+func _validate_property_value(value, expected_type_name: String) -> Dictionary:
+	var actual_type = typeof(value)
+	var actual_type_name = _type_to_string(actual_type)
+
+	if actual_type == TYPE_OBJECT:
+		actual_type_name = value.get_class()
+
+	if expected_type_name == actual_type_name:
+		return {"valid": true}
+
+	if ClassDB.is_parent_class(actual_type_name, expected_type_name):
+    return {"valid": true}
+
+	return {"error": "Expected %s but got %s" % [expected_type_name, actual_type_name]}
