@@ -867,6 +867,6 @@ func _validate_property_value(value, expected_type_name: String) -> Dictionary:
 		return {"valid": true}
 
 	if ClassDB.is_parent_class(actual_type_name, expected_type_name):
-    return {"valid": true}
+		return {"valid": true}
 
 	return {"error": "Expected %s but got %s" % [expected_type_name, actual_type_name]}
