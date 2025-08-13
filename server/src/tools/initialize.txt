@@ -1,7 +1,10 @@
 - Prefer Godot's Container systems such as VBoxContainer over absolute UI element positioning
-- When referencing paths for UI elements prefer "Access by Unique Name"
+- When referencing paths for UI elements prefer "Access by Unique Name", be sure to set unique_name_in_owner on the node.
 - Instance values override script defaults: @export variables set in the
   scene editor override the script's default values, check the actual scene
   instance properties when debugging mismatches
 - Prefer signals for communication between nodes
 - You must call godot-mcp:save_scene after modifying the scene through godot-mcp
+- For Object fields (like fonts), call initialize_property on the field first, then use indexed setters:
+  Example: update_node_property (MCP)(node_path: "/root/seven-segment-display", property: "font:resource_path", value: "res://src/fs-sevegment.otf")
+  These properties can be discovered by get_node_properties
