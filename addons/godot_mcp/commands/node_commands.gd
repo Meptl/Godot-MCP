@@ -71,23 +71,23 @@ func _create_node(params: Dictionary) -> void:
 		return
 
 	var node
-	
+
 	# Check if node_type is a scene resource path
 	if node_type.begins_with("res://"):
 		# Create from scene file
 		var scene_path = node_type
 		if not scene_path.ends_with(".tscn"):
 			scene_path += ".tscn"
-		
+
 		if not ResourceLoader.exists(scene_path):
 			command_result = {"error": "Scene file not found: %s" % scene_path}
 			return
-		
+
 		var packed_scene = ResourceLoader.load(scene_path)
 		if not packed_scene or not packed_scene is PackedScene:
 			command_result = {"error": "Failed to load scene: %s" % scene_path}
 			return
-		
+
 		node = packed_scene.instantiate()
 		if not node:
 			command_result = {"error": "Failed to instantiate scene: %s" % scene_path}
@@ -185,7 +185,7 @@ func _update_node_property(params: Dictionary) -> void:
 	# Get property type information for validation
 	var property_parts = property_name.split(":")
 	var type_result = _get_property_type_recursive(node, property_parts)
-	
+
 	if type_result.has("error"):
 		command_result = {"error": "Failed to get property type: %s" % type_result["error"]}
 		return
@@ -213,14 +213,14 @@ func _update_node_property(params: Dictionary) -> void:
 func _update_node_properties(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var properties = params.get("properties", {})
-	
+
 	for prop in properties:
 		_update_node_property({
 			"node_path": node_path,
 			"property": prop,
 			"value": properties[prop]
 		})
-		
+
 		# If any property update failed, return the error
 		if command_result.has("error"):
 			return
@@ -281,14 +281,14 @@ func _get_node_property_type(params: Dictionary) -> void:
 
 
 func _get_property_type_recursive(obj, property_parts: Array) -> Dictionary:
-	match [obj, property_parts.size()]:
-		[null, _]:
-			# Was an invalid property_path to start (we hit a null).
-			return {"error": "Cannot get property on null. Remaining property parts: %s" % property_parts}
-		[_, 0]:
-			# This shouldn't happen.
+	# Can't add to match case because <Object#null> is different from null.
+	if obj == null:
+		return {"error": "Cannot get property on null. Remaining property parts: %s" % property_parts}
+
+	match property_parts.size():
+		0:
 			return {"error": "_get_property_type_recursive called with empty property_parts"}
-		[_, 1]:
+		1:
 			var prop_name = property_parts[0]
 			# We stop at 1 because we need the parent node of the path for field information.
 			if typeof(obj) == TYPE_OBJECT:
@@ -311,7 +311,7 @@ func _get_property_type_recursive(obj, property_parts: Array) -> Dictionary:
 				var prop_check = _builtin_has_prop(obj, prop_name)
 				if prop_check.has("error"):
 					return prop_check
-				
+
 				if not prop_check["result"]:
 					return {"error": "Property %s not found in %s" % [prop_name, obj]}
 
