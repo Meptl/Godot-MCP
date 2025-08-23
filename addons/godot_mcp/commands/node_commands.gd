@@ -652,12 +652,10 @@ func _initialize_property(params: Dictionary) -> void:
 		command_result = {"error": "Class name cannot be empty"}
 		return
 
-	# Check if the class exists
 	if not ClassDB.class_exists(cls_name):
 		command_result = {"error": "Class does not exist: %s" % cls_name}
 		return
 
-	# Check if the class can be instantiated (skip builtin types)
 	if not ClassDB.can_instantiate(cls_name):
 		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % cls_name}
 		return
@@ -666,37 +664,33 @@ func _initialize_property(params: Dictionary) -> void:
 	if not node:
 		return
 
-	# Check if the property exists on the node
-	if not property_path in node:
-		command_result = {"error": "Property %s does not exist on node" % property_path}
+	# Get property type information for validation using recursive helper
+	var property_parts = property_path.split(":")
+	var type_result = _get_property_type_recursive(node, property_parts)
+
+	if type_result.has("error"):
+		command_result = {"error": "Failed to get property type: %s" % type_result["error"]}
 		return
 
-	# Get the property information to check its type
-	var property_list = node.get_property_list()
-	var property_info = null
-
-	for prop in property_list:
-		if prop["name"] == property_path:
-			property_info = prop
-			break
-
-	if not property_info:
-		command_result = {"error": "Property information not found for: %s" % property_path}
-		return
-
-	# Check if the property type is TYPE_OBJECT
-	if property_info["type"] != TYPE_OBJECT:
-		command_result = {"error": "Property %s is not of TYPE_OBJECT (type: %s)" % [property_path, property_info["type"]]}
-		return
-
-	# Get the expected class for this property (from class_name in property info)
+	# Get expected class names for the target property (handle comma-separated list)
 	var expected_class_names = []
-	if property_info.has("class_name") and not property_info["class_name"].is_empty():
-		# class_name can be comma-separated
-		var class_name_str = str(property_info["class_name"])
+	if type_result["type"] != "Object":
+		var class_name_str = str(type_result["type"])
 		expected_class_names = class_name_str.split(",")
 		for i in range(expected_class_names.size()):
 			expected_class_names[i] = expected_class_names[i].strip_edges()
+
+	# Check if any expected class exists (guard for non-object types)
+	if expected_class_names.size() > 0:
+		var has_valid_class = false
+		for expected_class in expected_class_names:
+			if ClassDB.class_exists(expected_class):
+				has_valid_class = true
+				break
+		
+		if not has_valid_class:
+			command_result = {"error": "Property %s is not of object type (type: %s)" % [property_path, type_result["type"]]}
+			return
 
 	# Verify that the specified class is valid for this property
 	if expected_class_names.size() > 0:
@@ -716,8 +710,8 @@ func _initialize_property(params: Dictionary) -> void:
 		command_result = {"error": "Failed to instantiate class: %s" % cls_name}
 		return
 
-	# Set the property to the new instance
-	node.set(property_path, instance)
+	# Set the property to the new instance using indexed access
+	node.set_indexed(property_path, instance)
 	_mark_scene_modified()
 
 	command_result = {
