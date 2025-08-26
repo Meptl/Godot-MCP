@@ -190,8 +190,8 @@ func _update_node_property(params: Dictionary) -> void:
 		command_result = {"error": "Failed to get property type: %s" % type_result["error"]}
 		return
 
-	# Parse property value for Godot types
-	var parsed_value = _parse_property_value(property_value)
+	# Parse property value for Godot types, with type conversion
+	var parsed_value = _parse_property_value(property_value, type_result["type"])
 
 	# Validate that parsed value is compatible with property type
 	var validation_result = _validate_property_value(parsed_value, type_result["type"])
@@ -361,7 +361,7 @@ func _should_skip_object_recursion(obj: Object) -> bool:
 	return false
 
 
-func _parse_property_value(value):
+func _parse_property_value(value, expected_type: String = ""):
 	# Only try to parse strings that look like they could be Godot types
 	if typeof(value) == TYPE_STRING and (
 		value.begins_with("Vector") or
@@ -391,14 +391,25 @@ func _parse_property_value(value):
 			var result = expression.execute([], null, true)
 			if not expression.has_execute_failed():
 				print("Successfully parsed %s as %s" % [value, result])
-				return result
+				value = result
 			else:
 				print("Failed to execute expression for: %s" % value)
 		else:
 			print("Failed to parse expression: %s (Error: %d)" % [value, error])
 
+	# Handle numeric type conversions based on expected type
+	if not expected_type.is_empty():
+		if typeof(value) == TYPE_FLOAT and expected_type == "int":
+			# Convert float to int if the property expects an integer
+			return int(value)
+		elif typeof(value) == TYPE_INT and expected_type == "float":
+			# Convert int to float if the property expects a float
+			return float(value)
+
 	# Otherwise, return value as is
 	return value
+
+
 
 
 
