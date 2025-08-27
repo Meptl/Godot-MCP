@@ -340,7 +340,7 @@ export const nodeTools: MCPTool[] = [
       class_name: z.string().optional()
         .describe('Name of the class to instantiate for the property (e.g. "RectangleShape2D", "Texture2D")'),
       resource_path: z.string().optional()
-        .describe('Godot resource path to load (e.g. "res://textures/player.png", "res://materials/metal.tres")'),
+        .describe('Godot resource path to load (e.g. "res://textures/player.png")'),
     }).refine(data => data.class_name || data.resource_path, {
       message: "Either class_name or resource_path must be provided",
     }),
