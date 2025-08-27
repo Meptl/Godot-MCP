@@ -399,19 +399,28 @@ func _parse_property_value(value, expected_type: String = ""):
 
 	# Handle type conversions based on expected type
 	if not expected_type.is_empty():
-		if typeof(value) == TYPE_FLOAT and expected_type == "int":
-			# Convert float to int if the property expects an integer
-			return int(value)
-		elif typeof(value) == TYPE_INT and expected_type == "float":
-			# Convert int to float if the property expects a float
-			return float(value)
-		elif typeof(value) == TYPE_STRING and expected_type == "bool":
-			# Convert string to bool if the property expects a boolean
-			var lower_value = value.to_lower()
-			if lower_value == "true" or lower_value == "1":
-				return true
-			elif lower_value == "false" or lower_value == "0":
-				return false
+		match [typeof(value), expected_type]:
+			[TYPE_FLOAT, "int"]:
+				# Convert float to int if the property expects an integer
+				return int(value)
+			[TYPE_INT, "float"]:
+				# Convert int to float if the property expects a float
+				return float(value)
+			[TYPE_STRING, "bool"]:
+				# Convert string to bool if the property expects a boolean
+				var lower_value = value.to_lower()
+				if lower_value == "true" or lower_value == "1":
+					return true
+				elif lower_value == "false" or lower_value == "0":
+					return false
+			[TYPE_STRING, "int"]:
+				# Convert string to int if the property expects an integer
+				if value.is_valid_int():
+					return int(value)
+			[TYPE_STRING, "float"]:
+				# Convert string to float if the property expects a float  
+				if value.is_valid_float():
+					return float(value)
 
 	# Otherwise, return value as is
 	return value
