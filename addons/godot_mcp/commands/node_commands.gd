@@ -397,7 +397,7 @@ func _parse_property_value(value, expected_type: String = ""):
 		else:
 			print("Failed to parse expression: %s (Error: %d)" % [value, error])
 
-	# Handle numeric type conversions based on expected type
+	# Handle type conversions based on expected type
 	if not expected_type.is_empty():
 		if typeof(value) == TYPE_FLOAT and expected_type == "int":
 			# Convert float to int if the property expects an integer
@@ -405,6 +405,13 @@ func _parse_property_value(value, expected_type: String = ""):
 		elif typeof(value) == TYPE_INT and expected_type == "float":
 			# Convert int to float if the property expects a float
 			return float(value)
+		elif typeof(value) == TYPE_STRING and expected_type == "bool":
+			# Convert string to bool if the property expects a boolean
+			var lower_value = value.to_lower()
+			if lower_value == "true" or lower_value == "1":
+				return true
+			elif lower_value == "false" or lower_value == "0":
+				return false
 
 	# Otherwise, return value as is
 	return value
