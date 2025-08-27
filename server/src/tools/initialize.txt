@@ -1,3 +1,4 @@
+Here are some notes for effectively using Godot-MCP:
 - Prefer Godot's Container systems such as VBoxContainer over absolute UI element positioning
 - When referencing paths for UI elements prefer "Access by Unique Name", be sure to set unique_name_in_owner on the node.
 - Instance values override script defaults: @export variables set in the

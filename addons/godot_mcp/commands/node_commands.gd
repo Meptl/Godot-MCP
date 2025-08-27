@@ -361,8 +361,8 @@ func _should_skip_object_recursion(obj: Object) -> bool:
 	return false
 
 
-func _parse_property_value(value, expected_type: String = ""):
-	# Only try to parse strings that look like they could be Godot types
+func _parse_property_value(value, expected_type):
+	# Handle builtins.
 	if typeof(value) == TYPE_STRING and (
 		value.begins_with("Vector") or
 		value.begins_with("Transform") or
@@ -398,29 +398,23 @@ func _parse_property_value(value, expected_type: String = ""):
 			print("Failed to parse expression: %s (Error: %d)" % [value, error])
 
 	# Handle type conversions based on expected type
-	if not expected_type.is_empty():
-		match [typeof(value), expected_type]:
-			[TYPE_FLOAT, "int"]:
-				# Convert float to int if the property expects an integer
+	match [typeof(value), expected_type]:
+		[TYPE_FLOAT, "int"]:
+			return int(value)
+		[TYPE_INT, "float"]:
+			return float(value)
+		[TYPE_STRING, "bool"]:
+			var lower_value = value.to_lower()
+			if lower_value == "true" or lower_value == "1":
+				return true
+			elif lower_value == "false" or lower_value == "0":
+				return false
+		[TYPE_STRING, "int"]:
+			if value.is_valid_int():
 				return int(value)
-			[TYPE_INT, "float"]:
-				# Convert int to float if the property expects a float
+		[TYPE_STRING, "float"]:
+			if value.is_valid_float():
 				return float(value)
-			[TYPE_STRING, "bool"]:
-				# Convert string to bool if the property expects a boolean
-				var lower_value = value.to_lower()
-				if lower_value == "true" or lower_value == "1":
-					return true
-				elif lower_value == "false" or lower_value == "0":
-					return false
-			[TYPE_STRING, "int"]:
-				# Convert string to int if the property expects an integer
-				if value.is_valid_int():
-					return int(value)
-			[TYPE_STRING, "float"]:
-				# Convert string to float if the property expects a float  
-				if value.is_valid_float():
-					return float(value)
 
 	# Otherwise, return value as is
 	return value
