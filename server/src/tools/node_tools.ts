@@ -60,7 +60,8 @@ interface ClassDerivativesParams {
 interface InitializePropertyParams {
   node_path: string;
   property_path: string;
-  class_name: string;
+  class_name?: string;
+  resource_path?: string;
 }
 
 /**
@@ -330,16 +331,20 @@ export const nodeTools: MCPTool[] = [
 
   {
     name: 'initialize_property',
-    description: 'Initialize a property of a node with an object of the given class',
+    description: 'Initialize a property of a node with an object of the given class or loaded resource',
     parameters: z.object({
       node_path: z.string()
         .describe('Path to the node (e.g. "/root/MainScene/Player")'),
       property_path: z.string()
         .describe('Path to the property to initialize (e.g. "collision_shape", "texture")'),
-      class_name: z.string()
+      class_name: z.string().optional()
         .describe('Name of the class to instantiate for the property (e.g. "RectangleShape2D", "Texture2D")'),
+      resource_path: z.string().optional()
+        .describe('Godot resource path to load (e.g. "res://textures/player.png", "res://materials/metal.tres")'),
+    }).refine(data => data.class_name || data.resource_path, {
+      message: "Either class_name or resource_path must be provided",
     }),
-    execute: async ({ node_path, property_path, class_name }: InitializePropertyParams): Promise<string> => {
+    execute: async ({ node_path, property_path, class_name, resource_path }: InitializePropertyParams): Promise<string> => {
       const godot = getGodotConnection();
       
       try {
@@ -347,9 +352,11 @@ export const nodeTools: MCPTool[] = [
           node_path,
           property_path,
           class_name,
+          resource_path,
         });
         
-        return `Initialized property "${property_path}" of node at ${node_path} with ${class_name} instance`;
+        const initType = resource_path ? `loaded resource from ${resource_path}` : `${class_name} instance`;
+        return `Initialized property "${property_path}" of node at ${node_path} with ${initType}`;
       } catch (error) {
         throw new Error(`Failed to initialize property: ${(error as Error).message}`);
       }

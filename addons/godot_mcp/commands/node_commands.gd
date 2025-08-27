@@ -660,6 +660,7 @@ func _initialize_property(params: Dictionary) -> void:
 	var node_path = params.get("node_path", "")
 	var property_path = params.get("property_path", "")
 	var cls_name = params.get("class_name", "")
+	var resource_path = params.get("resource_path", "")
 
 	if node_path.is_empty():
 		command_result = {"error": "Node path cannot be empty"}
@@ -669,16 +670,12 @@ func _initialize_property(params: Dictionary) -> void:
 		command_result = {"error": "Property path cannot be empty"}
 		return
 
-	if cls_name.is_empty():
-		command_result = {"error": "Class name cannot be empty"}
+	if cls_name.is_empty() and resource_path.is_empty():
+		command_result = {"error": "Either class_name or resource_path must be provided"}
 		return
 
-	if not ClassDB.class_exists(cls_name):
-		command_result = {"error": "Class does not exist: %s" % cls_name}
-		return
-
-	if not ClassDB.can_instantiate(cls_name):
-		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % cls_name}
+	if not cls_name.is_empty() and not resource_path.is_empty():
+		command_result = {"error": "Cannot specify both class_name and resource_path"}
 		return
 
 	var node = _get_editor_node(node_path)
@@ -693,52 +690,77 @@ func _initialize_property(params: Dictionary) -> void:
 		command_result = {"error": "Failed to get property type: %s" % type_result["error"]}
 		return
 
-	# Get expected class names for the target property (handle comma-separated list)
-	var expected_class_names = []
-	if type_result["type"] != "Object":
-		var class_name_str = str(type_result["type"])
-		expected_class_names = class_name_str.split(",")
-		for i in range(expected_class_names.size()):
-			expected_class_names[i] = expected_class_names[i].strip_edges()
+	var instance
 
-	# Check if any expected class exists (guard for non-object types)
-	if expected_class_names.size() > 0:
-		var has_valid_class = false
-		for expected_class in expected_class_names:
-			if ClassDB.class_exists(expected_class):
-				has_valid_class = true
-				break
-		
-		if not has_valid_class:
-			command_result = {"error": "Property %s is not of object type (type: %s)" % [property_path, type_result["type"]]}
+	if not resource_path.is_empty():
+		# Load resource from path
+		if not ResourceLoader.exists(resource_path):
+			command_result = {"error": "Resource file not found: %s" % resource_path}
 			return
 
-	# Verify that the specified class is valid for this property
-	if expected_class_names.size() > 0:
-		var is_valid_class = false
-		for expected_class in expected_class_names:
-			if expected_class == cls_name or ClassDB.is_parent_class(cls_name, expected_class):
-				is_valid_class = true
-				break
-
-		if not is_valid_class:
-			command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [cls_name, property_path, expected_class_names]}
+		instance = ResourceLoader.load(resource_path)
+		if not instance:
+			command_result = {"error": "Failed to load resource: %s" % resource_path}
+			return
+	else:
+		# Create instance from class name
+		if not ClassDB.class_exists(cls_name):
+			command_result = {"error": "Class does not exist: %s" % cls_name}
 			return
 
-	# Create an instance of the class
-	var instance = ClassDB.instantiate(cls_name)
-	if not instance:
-		command_result = {"error": "Failed to instantiate class: %s" % cls_name}
-		return
+		if not ClassDB.can_instantiate(cls_name):
+			command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % cls_name}
+			return
+
+		# Get expected class names for the target property (handle comma-separated list)
+		var expected_class_names = []
+		if type_result["type"] != "Object":
+			var class_name_str = str(type_result["type"])
+			expected_class_names = class_name_str.split(",")
+			for i in range(expected_class_names.size()):
+				expected_class_names[i] = expected_class_names[i].strip_edges()
+
+		# Check if any expected class exists (guard for non-object types)
+		if expected_class_names.size() > 0:
+			var has_valid_class = false
+			for expected_class in expected_class_names:
+				if ClassDB.class_exists(expected_class):
+					has_valid_class = true
+					break
+			
+			if not has_valid_class:
+				command_result = {"error": "Property %s is not of object type (type: %s)" % [property_path, type_result["type"]]}
+				return
+
+		# Verify that the specified class is valid for this property
+		if expected_class_names.size() > 0:
+			var is_valid_class = false
+			for expected_class in expected_class_names:
+				if expected_class == cls_name or ClassDB.is_parent_class(cls_name, expected_class):
+					is_valid_class = true
+					break
+
+			if not is_valid_class:
+				command_result = {"error": "Class %s is not valid for property %s (expected: %s)" % [cls_name, property_path, expected_class_names]}
+				return
+
+		# Create an instance of the class
+		instance = ClassDB.instantiate(cls_name)
+		if not instance:
+			command_result = {"error": "Failed to instantiate class: %s" % cls_name}
+			return
 
 	# Set the property to the new instance using indexed access
 	node.set_indexed(property_path, instance)
 	_mark_scene_modified()
 
+	var init_method = "loaded resource from %s" % resource_path if not resource_path.is_empty() else "instantiated class %s" % cls_name
 	command_result = {
 		"node_path": node_path,
 		"property_path": property_path,
 		"class_name": cls_name,
+		"resource_path": resource_path,
+		"initialization_method": init_method,
 		"success": true
 	}
 
