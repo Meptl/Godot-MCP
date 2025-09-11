@@ -31,3 +31,6 @@ __pycache__/
 .~lock.*
 
 CLAUDE.local.md
+
+# Test artifacts
+tests/artifacts/

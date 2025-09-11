@@ -180,8 +180,9 @@ func _create_scene(params: Dictionary) -> void:
 	# Clean up
 	root_node.free()
 	
-	# Try to open the scene in the editor
-	EditorInterface.open_scene_from_path(path)
+	# Only call EditorInterface in editor to allow running in tests
+	if Engine.is_editor_hint():
+		EditorInterface.open_scene_from_path(path)
 	
 	command_result = {
 		"scene_path": path,
