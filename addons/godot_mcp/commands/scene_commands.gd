@@ -137,26 +137,11 @@ func _create_scene(params: Dictionary) -> void:
 	# Create the root node of the specified type
 	var root_node = null
 	
-	match root_node_type:
-		"Node":
-			root_node = Node.new()
-		"Node2D":
-			root_node = Node2D.new()
-		"Node3D", "Spatial":
-			root_node = Node3D.new()
-		"Control":
-			root_node = Control.new()
-		"CanvasLayer":
-			root_node = CanvasLayer.new()
-		"Panel":
-			root_node = Panel.new()
-		_:
-			# Attempt to create a custom class if built-in type not recognized
-			if ClassDB.class_exists(root_node_type):
-				root_node = ClassDB.instantiate(root_node_type)
-			else:
-				command_result = {"error": "Invalid root node type: %s" % root_node_type}
-				return
+	if ClassDB.class_exists(root_node_type):
+		root_node = ClassDB.instantiate(root_node_type)
+	else:
+		command_result = {"error": "Invalid root node type: %s" % root_node_type}
+		return
 	
 	# Give the root node a name based on the file name
 	var file_name = path.get_file().get_basename()
