@@ -159,3 +159,93 @@ func test_input_map_add_action_already_exists():
 
 	# Clean up: remove the test action
 	InputMap.erase_action(test_action_name)
+
+var event_type_params = [
+	["key", {"keycode": KEY_SPACE, "mods": "none"}, "Should successfully add key event"],
+	["key", {"keycode": KEY_A, "mods": "ctrl+shift"}, "Should successfully add key event with modifiers"],
+	["key", {"physical_keycode": KEY_B, "mods": "alt"}, "Should successfully add key event with physical keycode"],
+	["mouse", {"button_index": MOUSE_BUTTON_LEFT}, "Should successfully add mouse event"],
+	["mouse", {"button_index": MOUSE_BUTTON_RIGHT}, "Should successfully add right mouse event"],
+	["joy_button", {"button_index": JOY_BUTTON_A}, "Should successfully add joypad button event"],
+	["joy_button", {"button_index": JOY_BUTTON_X}, "Should successfully add joypad X button event"],
+	["joy_axis", {"axis": JOY_AXIS_LEFT_X, "axis_value": -1.0}, "Should successfully add joypad axis event"],
+	["joy_axis", {"axis": JOY_AXIS_RIGHT_Y, "axis_value": 1.0}, "Should successfully add right stick Y axis event"]
+]
+
+func test_input_map_add_event_types(params=use_parameters(event_type_params)):
+	var event_type = params[0]
+	var input_spec = params[1]
+	var expected_message = params[2]
+
+	var event_params = {
+		"action_name": "test_action",
+		"type": event_type,
+		"input_spec": input_spec
+	}
+
+	project_commands._handle_command("input_map_add_event", event_params)
+	var add_result = project_commands.command_result
+
+	assert_true(add_result.has("success"), expected_message)
+
+var error_case_params = [
+	["nonexistent_action", "key", {"keycode": KEY_A}, "Should return error for nonexistent action"],
+	["test_action", "invalid_type", {}, "Should return error for invalid event type"],
+	["test_action", "key", {"mods": "none"}, "Should return error when no keycode or physical_keycode specified"],
+	["test_action", "mouse", {}, "Should return error when button_index missing for mouse"],
+	["test_action", "joy_button", {}, "Should return error when button_index missing for joy_button"],
+	["test_action", "joy_axis", {}, "Should return error when axis missing for joy_axis"],
+	["test_action", "joy_axis", {"axis": JOY_AXIS_LEFT_X}, "Should return error when axis_value missing for joy_axis"],
+	["test_action", "joy_axis", {"axis": JOY_AXIS_LEFT_X, "axis_value": 0.5}, "Should return error when axis_value is not 1.0 or -1.0"],
+	["test_action", "joy_axis", {"axis": JOY_AXIS_LEFT_X, "axis_value": 0.0}, "Should return error when axis_value is 0.0"],
+	["test_action", "key", {"keycode": KEY_A, "mods": "invalid_mod"}, "Should return error for invalid modifier"]
+]
+
+func test_input_map_add_event_error_cases(params=use_parameters(error_case_params)):
+	var action_name = params[0]
+	var event_type = params[1]
+	var input_spec = params[2]
+	var expected_message = params[3]
+
+	var event_params = {
+		"action_name": action_name,
+		"type": event_type,
+		"input_spec": input_spec
+	}
+
+	project_commands._handle_command("input_map_add_event", event_params)
+	var add_result = project_commands.command_result
+
+	assert_true(add_result.has("error"), expected_message)
+
+func test_input_map_add_event_verification():
+	var action_name = "test_action"
+
+	var event_params = {
+		"action_name": action_name,
+		"type": "key",
+		"input_spec": {
+			"keycode": KEY_SPACE,
+			"mods": "none"
+		}
+	}
+
+	project_commands._handle_command("input_map_add_event", event_params)
+	var add_result = project_commands.command_result
+
+	assert_true(add_result.has("success"), "Should successfully add key event")
+
+	var list_params = {"show_builtins": false}
+	project_commands._handle_command("input_map_list", list_params)
+	var list_result = project_commands.command_result
+
+	var test_action = list_result.actions["test_action"]
+	var events = test_action.events
+
+	var found_space = false
+	for event in events:
+		if event.type == "InputEventKey" and event.keycode == str(KEY_SPACE):
+			found_space = true
+			break
+
+	assert_true(found_space, "Should find the added SPACE key event in action")

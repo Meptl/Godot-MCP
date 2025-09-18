@@ -11,6 +11,12 @@ interface InputMapAddActionParams {
   deadzone?: number;
 }
 
+interface InputMapAddEventParams {
+  action_name: string;
+  type: string;
+  input_spec: Record<string, any>;
+}
+
 export const projectTools: MCPTool[] = [
   {
     name: 'input_map_list',
@@ -61,6 +67,34 @@ export const projectTools: MCPTool[] = [
         return JSON.stringify(result, null, 2);
       } catch (error) {
         throw new Error(`Failed to add input map action: ${(error as Error).message}`);
+      }
+    },
+  },
+  {
+    name: 'input_map_add_event',
+    description: 'Add an input event to an existing action in the InputMap',
+    parameters: z.object({
+      action_name: z.string()
+        .min(1)
+        .describe('The name of the action to add the event to'),
+      type: z.enum(['key', 'mouse', 'joy_button', 'joy_axis'])
+        .describe('The type of input event to add'),
+      input_spec: z.record(z.any())
+        .describe('JSON object specifying the input event details. For key events: {keycode?: number, physical_keycode?: number, mods?: string}. For mouse events: {button_index: number}. For joy_button events: {button_index: number}. For joy_axis events: {axis: number, axis_value: number} where axis_value must be 1.0 or -1.0'),
+    }),
+    execute: async ({ action_name, type, input_spec }: InputMapAddEventParams): Promise<string> => {
+      const godot = getGodotConnection();
+
+      try {
+        const result = await godot.sendCommand<CommandResult>('input_map_add_event', {
+          action_name,
+          type,
+          input_spec,
+        });
+
+        return JSON.stringify(result, null, 2);
+      } catch (error) {
+        throw new Error(`Failed to add input event: ${(error as Error).message}`);
       }
     },
   },

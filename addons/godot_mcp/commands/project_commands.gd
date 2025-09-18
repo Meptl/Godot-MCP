@@ -28,6 +28,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"input_map_add_action":
 			_input_map_add_action(params)
 			return true
+		"input_map_add_event":
+			_input_map_add_event(params)
+			return true
 	return false  # Command not handled
 
 func _get_project_info(_params: Dictionary) -> void:
@@ -342,3 +345,126 @@ func _input_map_add_action(params: Dictionary) -> void:
 
 	InputMap.add_action(action_name, deadzone)
 	command_result = {"success": "Action '%s' added with deadzone %.2f" % [action_name, deadzone]}
+
+func _input_map_add_event(params: Dictionary) -> void:
+	var action_name = params.get("action_name", "")
+	var event_type = params.get("type", "")
+	var input_spec = params.get("input_spec", {})
+
+	if action_name.is_empty():
+		command_result = {"error": "Action name is required"}
+		return
+
+	if not InputMap.has_action(action_name):
+		command_result = {"error": "Action '%s' does not exist" % action_name}
+		return
+
+	if event_type.is_empty():
+		command_result = {"error": "Event type is required"}
+		return
+
+	var event: InputEvent
+
+	match event_type:
+		"key":
+			event = _create_key_event(input_spec)
+		"mouse":
+			event = _create_mouse_event(input_spec)
+		"joy_button":
+			event = _create_joy_button_event(input_spec)
+		"joy_axis":
+			event = _create_joy_axis_event(input_spec)
+		_:
+			command_result = {"error": "Unsupported event type '%s'. Supported types: key, mouse, joy_button, joy_axis" % event_type}
+			return
+
+	if event == null:
+		return
+
+	InputMap.action_add_event(action_name, event)
+	command_result = {"success": "Event added to action '%s'" % action_name}
+
+func _create_key_event(input_spec: Dictionary) -> InputEvent:
+	var key_event = InputEventKey.new()
+
+	var keycode = input_spec.get("keycode", 0)
+	var physical_keycode = input_spec.get("physical_keycode", 0)
+	var mods = input_spec.get("mods", "none")
+
+	if keycode == 0 and physical_keycode == 0:
+		command_result = {"error": "Either keycode or physical_keycode must be specified"}
+		return null
+
+	if keycode != 0:
+		key_event.keycode = keycode
+	if physical_keycode != 0:
+		key_event.physical_keycode = physical_keycode
+
+	if mods != "none":
+		var mod_list = mods.split("+")
+		for mod in mod_list:
+			match mod:
+				"ctrl":
+					key_event.ctrl_pressed = true
+				"shift":
+					key_event.shift_pressed = true
+				"alt":
+					key_event.alt_pressed = true
+				"meta":
+					key_event.meta_pressed = true
+				_:
+					command_result = {"error": "Invalid modifier '%s'. Valid modifiers: ctrl, shift, alt, meta" % mod}
+					return null
+
+	return key_event
+
+func _create_mouse_event(input_spec: Dictionary) -> InputEvent:
+	var mouse_event = InputEventMouseButton.new()
+
+	var button_index = input_spec.get("button_index", 0)
+
+	if button_index == 0:
+		command_result = {"error": "button_index is required for mouse events"}
+		return null
+
+	mouse_event.button_index = button_index
+	mouse_event.pressed = true
+
+	return mouse_event
+
+func _create_joy_button_event(input_spec: Dictionary) -> InputEvent:
+	var joy_event = InputEventJoypadButton.new()
+
+	var button_index = input_spec.get("button_index", -1)
+
+	if button_index == -1:
+		command_result = {"error": "button_index is required for joy_button events"}
+		return null
+
+	joy_event.button_index = button_index
+	joy_event.pressed = true
+
+	return joy_event
+
+func _create_joy_axis_event(input_spec: Dictionary) -> InputEvent:
+	var joy_event = InputEventJoypadMotion.new()
+
+	var axis = input_spec.get("axis", -1)
+	var axis_value = input_spec.get("axis_value", 0.0)
+
+	if axis == -1:
+		command_result = {"error": "axis is required for joy_axis events"}
+		return null
+
+	if axis_value == 0.0:
+		command_result = {"error": "axis_value is required for joy_axis events"}
+		return null
+
+	if axis_value != 1.0 and axis_value != -1.0:
+		command_result = {"error": "axis_value must be either 1.0 or -1.0 for joy_axis events"}
+		return null
+
+	joy_event.axis = axis
+	joy_event.axis_value = axis_value
+
+	return joy_event
