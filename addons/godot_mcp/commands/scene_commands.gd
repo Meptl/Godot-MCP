@@ -136,12 +136,16 @@ func _create_scene(params: Dictionary) -> void:
 	
 	# Create the root node of the specified type
 	var root_node = null
-	
-	if ClassDB.class_exists(root_node_type):
-		root_node = ClassDB.instantiate(root_node_type)
-	else:
-		command_result = {"error": "Invalid root node type: %s" % root_node_type}
+
+	if not ClassDB.class_exists(root_node_type):
+		command_result = {"error": "Class does not exist: %s" % root_node_type}
 		return
+
+	if not ClassDB.can_instantiate(root_node_type):
+		command_result = {"error": "Cannot instantiate class: %s (builtin types are not supported)" % root_node_type}
+		return
+
+	root_node = ClassDB.instantiate(root_node_type)
 	
 	# Give the root node a name based on the file name
 	var file_name = path.get_file().get_basename()
