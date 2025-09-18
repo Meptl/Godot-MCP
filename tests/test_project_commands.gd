@@ -82,9 +82,9 @@ func test_input_map_add_action():
 	# Verify the action was added successfully
 	assert_true(add_result.has("success"), "Should have success message")
 
-	# Verify the action appears in list_input_map
+	# Verify the action appears in input_map_list
 	var list_params = {"show_builtins": false}
-	project_commands._handle_command("list_input_map", list_params)
+	project_commands._handle_command("input_map_list", list_params)
 	var list_result = project_commands.command_result
 
 	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
@@ -110,9 +110,9 @@ func test_input_map_add_action_default_deadzone():
 	# Verify the action was added successfully
 	assert_true(add_result.has("success"), "Should have success message")
 
-	# Verify the action appears in list_input_map
+	# Verify the action appears in input_map_list
 	var list_params = {"show_builtins": false}
-	project_commands._handle_command("list_input_map", list_params)
+	project_commands._handle_command("input_map_list", list_params)
 	var list_result = project_commands.command_result
 
 	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
