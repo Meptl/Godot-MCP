@@ -22,6 +22,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"view_input_map":
 			_view_input_map(params)
 			return true
+		"list_input_map":
+			_list_input_map(params)
+			return true
 		"update_input_map":
 			_update_input_map(params)
 			return true
@@ -273,6 +276,56 @@ func _view_input_map(params: Dictionary) -> void:
 		"actions": input_map_data,
 		"total_actions": actions.size(),
 		"show_builtins": show_builtins
+	}
+
+func _list_input_map(params: Dictionary) -> void:
+	var show_builtins = params.get("show_builtins", false)
+	var actions = InputMap.get_actions()
+	var input_map_data = {}
+
+	for action in actions:
+		if not show_builtins and action.begins_with("ui_"):
+			continue
+
+		var events = InputMap.action_get_events(action)
+		var event_list = []
+
+		for event in events:
+			var event_data = {}
+			event_data["type"] = event.get_class()
+
+			if event is InputEventKey:
+				event_data["keycode"] = str(event.keycode)
+				event_data["physical_keycode"] = str(event.physical_keycode)
+
+				var mods = []
+				if event.ctrl_pressed:
+					mods.append("ctrl")
+				if event.shift_pressed:
+					mods.append("shift")
+				if event.alt_pressed:
+					mods.append("alt")
+				if event.meta_pressed:
+					mods.append("meta")
+
+				event_data["mods"] = "none" if mods.is_empty() else "+".join(mods)
+
+			elif event is InputEventMouseButton:
+				event_data["button_index"] = event.button_index
+			elif event is InputEventJoypadButton:
+				event_data["button_index"] = event.button_index
+			elif event is InputEventJoypadMotion:
+				event_data["axis"] = event.axis
+
+			event_list.append(event_data)
+
+		input_map_data[action] = {
+			"events": event_list,
+			"deadzone": InputMap.action_get_deadzone(action)
+		}
+
+	command_result = {
+		"actions": input_map_data
 	}
 
 func _update_input_map(params: Dictionary) -> void:
