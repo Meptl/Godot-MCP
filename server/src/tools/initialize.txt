@@ -7,4 +7,5 @@ Here are some notes for effectively using Godot-MCP:
 - Prefer signals for communication between nodes
 - You must call godot-mcp:save_scene after modifying the scene through godot-mcp
 - For Object fields (like fonts), call initialize_property on the field
+- When using preload() with hard coded scene paths, consider using UID paths instead of regular paths for better reliability. Use get_resource_uid to retrieve the UID for a resource, then reference it as uid://resource_uid
 - If available, use context7 for up to date Godot docs

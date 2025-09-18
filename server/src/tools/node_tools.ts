@@ -64,6 +64,10 @@ interface InitializePropertyParams {
   resource_path?: string;
 }
 
+interface GetResourceUidParams {
+  resource_path: string;
+}
+
 /**
  * Definition for node tools - operations that manipulate nodes in the scene tree
  */
@@ -346,7 +350,7 @@ export const nodeTools: MCPTool[] = [
     }),
     execute: async ({ node_path, property_path, class_name, resource_path }: InitializePropertyParams): Promise<string> => {
       const godot = getGodotConnection();
-      
+
       try {
         const result = await godot.sendCommand<CommandResult>('initialize_property', {
           node_path,
@@ -354,11 +358,33 @@ export const nodeTools: MCPTool[] = [
           class_name,
           resource_path,
         });
-        
+
         const initType = resource_path ? `loaded resource from ${resource_path}` : `${class_name} instance`;
         return `Initialized property "${property_path}" of node at ${node_path} with ${initType}`;
       } catch (error) {
         throw new Error(`Failed to initialize property: ${(error as Error).message}`);
+      }
+    },
+  },
+
+  {
+    name: 'get_resource_uid',
+    description: 'Get the unique identifier (UID) for a resource at the given path',
+    parameters: z.object({
+      resource_path: z.string()
+        .describe('Path to the resource file (e.g. "res://scenes/TestScene.tscn", "res://textures/player.png")'),
+    }),
+    execute: async ({ resource_path }: GetResourceUidParams): Promise<string> => {
+      const godot = getGodotConnection();
+
+      try {
+        const result = await godot.sendCommand<CommandResult>('get_resource_uid', {
+          resource_path,
+        });
+
+        return result.uid;
+      } catch (error) {
+        throw new Error(`Failed to get resource UID: ${(error as Error).message}`);
       }
     },
   },

@@ -51,6 +51,9 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"initialize_property":
 			_initialize_property(params)
 			return true
+		"get_resource_uid":
+			_get_resource_uid(params)
+			return true
 	return false  # Command not handled
 
 
@@ -907,3 +910,19 @@ func _validate_property_value(value, expected_type_name: String) -> Dictionary:
 		return {"valid": true}
 
 	return {"error": "Expected %s but got %s" % [expected_type_name, actual_type_name]}
+
+
+func _get_resource_uid(params: Dictionary) -> void:
+	var resource_path = params.get("resource_path", "")
+
+	if resource_path.is_empty():
+		command_result = {"error": "Resource path cannot be empty"}
+		return
+
+	if not ResourceLoader.exists(resource_path):
+		command_result = {"error": "Resource file not found: %s" % resource_path}
+		return
+
+	var uid = ResourceUID.path_to_uid(resource_path)
+
+	command_result = {"uid": uid}
