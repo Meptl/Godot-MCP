@@ -33,3 +33,8 @@ See specific documentation in the /docs folder for more detail.
 - Keep functions small and focused
 - Error handling: prefer try/catch in TS, use assertions in GDScript
 - Use context7 to retrieve Godot docs to verify any work involving the Godot API.
+
+## Misc
+To run all tests: `godot -d -s addons/gut/gut_cmdln.gd -ginclude_subdirs -gdir=res://tests -gexit`
+To run a single test: `godot -d -s addons/gut/gut_cmdln.gd
+-gtest=res://tests/test_scene_commands.gd -gexit`

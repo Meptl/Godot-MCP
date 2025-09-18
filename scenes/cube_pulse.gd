@@ -7,9 +7,10 @@ var base_scale: Vector3
 var time_passed: float = 0.0
 
 func _ready():
-	base_scale = scale
-	get_node('../../CubeMeshInstance').set_indexed('mesh:size43', Vector3(2,2,2))
-	print(get_node('../../CubeMeshInstance').get_indexed('mesh:size'))
+	print(ResourceUID.path_to_uid("res://scenes/TestScene.tscn"))
+	#base_scale = scale
+	#get_node('../../CubeMeshInstance').set_indexed('mesh:size43', Vector3(2,2,2))
+	#print(get_node('../../CubeMeshInstance').get_indexed('mesh:size'))
 
 func _process(delta):
 	time_passed += delta * pulse_speed

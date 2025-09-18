@@ -60,7 +60,7 @@ export const editorTools: MCPTool[] = [
   
   {
     name: 'analyze_script',
-    description: 'Analyze a GDScript file for syntax errors and potential issues. Returns JSON with "success" (true if no errors) and "output" (array where output[0] is stdout, output[1] is stderr if present). Use this to verify the correctness of GDScript code edits you make.',
+    description: 'Analyze a GDScript file for syntax errors and potential issues. Returns JSON with "success" (true if no errors) and "output" (array where output[0] is stdout, output[1] is stderr if present). Use this to verify the correctness of GDScript code edits you make. Note that Autoloads may throw an error.',
     parameters: z.object({
       script_path: z.string()
         .describe('Path to the GDScript file to analyze (e.g. "res://scripts/player.gd")'),
