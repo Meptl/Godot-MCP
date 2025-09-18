@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { getGodotConnection } from '../utils/godot_connection.js';
 import { MCPTool, CommandResult } from '../utils/types.js';
 
-interface ListInputMapParams {
+interface InputMapListParams {
   show_builtins?: boolean;
 }
 
 export const projectTools: MCPTool[] = [
   {
-    name: 'list_input_map',
+    name: 'input_map_list',
     description: 'List all input actions in the InputMap with optional builtin actions',
     parameters: z.object({
       show_builtins: z.boolean()
@@ -16,11 +16,11 @@ export const projectTools: MCPTool[] = [
         .default(false)
         .describe('Whether to include built-in UI actions (ui_*). Default is false.'),
     }),
-    execute: async ({ show_builtins = false }: ListInputMapParams): Promise<string> => {
+    execute: async ({ show_builtins = false }: InputMapListParams): Promise<string> => {
       const godot = getGodotConnection();
 
       try {
-        const result = await godot.sendCommand<CommandResult>('list_input_map', {
+        const result = await godot.sendCommand<CommandResult>('input_map_list', {
           show_builtins,
         });
 

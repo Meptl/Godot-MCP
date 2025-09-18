@@ -9,12 +9,12 @@ func after_each():
 	if project_commands:
 		project_commands.free()
 
-func test_list_input_map_without_builtins():
+func test_input_map_list_without_builtins():
 	var command_params = {
 		"show_builtins": false
 	}
 	
-	project_commands._handle_command("list_input_map", command_params)
+	project_commands._handle_command("input_map_list", command_params)
 	var command_result = project_commands.command_result
 	
 	# Should not contain ui_left builtin action
@@ -29,12 +29,12 @@ func test_list_input_map_without_builtins():
 	assert_eq(first_event.type, "InputEventKey", "First event should be InputEventKey")
 	assert_eq(first_event.keycode, str(KEY_W), "Should have W key mapped")
 
-func test_list_input_map_with_builtins():
+func test_input_map_list_with_builtins():
 	var command_params = {
 		"show_builtins": true
 	}
 	
-	project_commands._handle_command("list_input_map", command_params)
+	project_commands._handle_command("input_map_list", command_params)
 	var command_result = project_commands.command_result
 	
 	# Should contain ui_left builtin action
@@ -54,10 +54,10 @@ func test_list_input_map_with_builtins():
 	assert_eq(test_event.type, "InputEventKey", "test_action first event should be InputEventKey")
 	assert_eq(test_event.keycode, str(KEY_W), "test_action should have W key mapped")
 
-func test_list_input_map_default_show_builtins():
+func test_input_map_list_default_show_builtins():
 	var command_params = {}
 
-	project_commands._handle_command("list_input_map", command_params)
+	project_commands._handle_command("input_map_list", command_params)
 	var command_result = project_commands.command_result
 
 	# Should not contain ui_left by default (builtins disabled)

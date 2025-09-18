@@ -22,8 +22,8 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"view_input_map":
 			_view_input_map(params)
 			return true
-		"list_input_map":
-			_list_input_map(params)
+		"input_map_list":
+			_input_map_list(params)
 			return true
 		"update_input_map":
 			_update_input_map(params)
@@ -278,7 +278,7 @@ func _view_input_map(params: Dictionary) -> void:
 		"show_builtins": show_builtins
 	}
 
-func _list_input_map(params: Dictionary) -> void:
+func _input_map_list(params: Dictionary) -> void:
 	var show_builtins = params.get("show_builtins", false)
 	var actions = InputMap.get_actions()
 	var input_map_data = {}
