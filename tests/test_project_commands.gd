@@ -62,3 +62,100 @@ func test_input_map_list_default_show_builtins():
 
 	# Should not contain ui_left by default (builtins disabled)
 	assert_false(command_result.actions.has("ui_left"), "Should not contain ui_left builtin action by default")
+
+func test_input_map_add_action():
+	var test_action_name = "test_new_action"
+
+	# Remove the action if it exists before testing
+	if InputMap.has_action(test_action_name):
+		InputMap.erase_action(test_action_name)
+
+	# Add the action using the input_map_add_action command
+	var add_params = {
+		"action_name": test_action_name,
+		"deadzone": 0.3
+	}
+
+	project_commands._handle_command("input_map_add_action", add_params)
+	var add_result = project_commands.command_result
+
+	# Verify the action was added successfully
+	assert_true(add_result.has("success"), "Should have success message")
+
+	# Verify the action appears in list_input_map
+	var list_params = {"show_builtins": false}
+	project_commands._handle_command("list_input_map", list_params)
+	var list_result = project_commands.command_result
+
+	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
+
+	# Clean up: remove the test action
+	InputMap.erase_action(test_action_name)
+
+func test_input_map_add_action_default_deadzone():
+	var test_action_name = "test_default_deadzone"
+
+	# Remove the action if it exists before testing
+	if InputMap.has_action(test_action_name):
+		InputMap.erase_action(test_action_name)
+
+	# Add the action without specifying deadzone (should use default 0.2)
+	var add_params = {
+		"action_name": test_action_name
+	}
+
+	project_commands._handle_command("input_map_add_action", add_params)
+	var add_result = project_commands.command_result
+
+	# Verify the action was added successfully
+	assert_true(add_result.has("success"), "Should have success message")
+
+	# Verify the action appears in list_input_map
+	var list_params = {"show_builtins": false}
+	project_commands._handle_command("list_input_map", list_params)
+	var list_result = project_commands.command_result
+
+	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
+
+	# Clean up: remove the test action
+	InputMap.erase_action(test_action_name)
+
+func test_input_map_add_action_empty_name():
+	# Test with empty action name
+	var add_params = {
+		"action_name": ""
+	}
+
+	project_commands._handle_command("input_map_add_action", add_params)
+	var add_result = project_commands.command_result
+
+	# Should return error for empty action name
+	assert_true(add_result.has("error"), "Should have error for empty action name")
+
+func test_input_map_add_action_already_exists():
+	var test_action_name = "test_existing_action"
+
+	# Remove the action if it exists before testing
+	if InputMap.has_action(test_action_name):
+		InputMap.erase_action(test_action_name)
+
+	# First, add the action using our command (should succeed)
+	var add_params = {
+		"action_name": test_action_name
+	}
+
+	project_commands._handle_command("input_map_add_action", add_params)
+	var first_result = project_commands.command_result
+
+	# First call should succeed
+	assert_true(first_result.has("success"), "First add should succeed")
+
+	# Try to add the same action again (should fail)
+	project_commands._handle_command("input_map_add_action", add_params)
+	var second_result = project_commands.command_result
+
+	# Second call should return error for action already exists
+	assert_true(second_result.has("error"), "Should have error for action already exists")
+
+	# Clean up: remove the test action
+	InputMap.erase_action(test_action_name)

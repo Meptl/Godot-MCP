@@ -25,8 +25,8 @@ func _handle_command(command_type: String, params: Dictionary) -> bool:
 		"input_map_list":
 			_input_map_list(params)
 			return true
-		"update_input_map":
-			_update_input_map(params)
+		"input_map_add_action":
+			_input_map_add_action(params)
 			return true
 	return false  # Command not handled
 
@@ -328,135 +328,17 @@ func _input_map_list(params: Dictionary) -> void:
 		"actions": input_map_data
 	}
 
-func _update_input_map(params: Dictionary) -> void:
-	var action = params.get("action", "")
-	var operation = params.get("operation", "")
-	
-	if action.is_empty():
+func _input_map_add_action(params: Dictionary) -> void:
+	var action_name = params.get("action_name", "")
+	var deadzone = params.get("deadzone", 0.2)
+
+	if action_name.is_empty():
 		command_result = {"error": "Action name is required"}
 		return
-	
-	match operation:
-		"add_action":
-			var deadzone = params.get("deadzone", 0.2)
-			if InputMap.has_action(action):
-				command_result = {"error": "Action '%s' already exists" % action}
-				return
-			InputMap.add_action(action, deadzone)
-			command_result = {"success": "Action '%s' added with deadzone %.2f" % [action, deadzone]}
-		
-		"remove_action":
-			if not InputMap.has_action(action):
-				command_result = {"error": "Action '%s' does not exist" % action}
-				return
-			InputMap.erase_action(action)
-			command_result = {"success": "Action '%s' removed" % action}
-		
-		"add_event":
-			if not InputMap.has_action(action):
-				command_result = {"error": "Action '%s' does not exist" % action}
-				return
-			
-			var event_type = params.get("event_type", "")
-			var event = _create_input_event(event_type, params)
-			if event == null:
-				return
-			
-			InputMap.action_add_event(action, event)
-			command_result = {"success": "Event added to action '%s'" % action}
-		
-		"remove_event":
-			if not InputMap.has_action(action):
-				command_result = {"error": "Action '%s' does not exist" % action}
-				return
-			
-			var event_type = params.get("event_type", "")
-			var event = _create_input_event(event_type, params)
-			if event == null:
-				return
-			
-			if not InputMap.action_has_event(action, event):
-				command_result = {"error": "Event not found in action '%s'" % action}
-				return
-			
-			InputMap.action_erase_event(action, event)
-			command_result = {"success": "Event removed from action '%s'" % action}
-		
-		"clear_events":
-			if not InputMap.has_action(action):
-				command_result = {"error": "Action '%s' does not exist" % action}
-				return
-			
-			InputMap.action_erase_events(action)
-			command_result = {"success": "All events cleared from action '%s'" % action}
-		
-		"set_deadzone":
-			if not InputMap.has_action(action):
-				command_result = {"error": "Action '%s' does not exist" % action}
-				return
-			
-			var deadzone = params.get("deadzone", 0.2)
-			InputMap.action_set_deadzone(action, deadzone)
-			command_result = {"success": "Deadzone for action '%s' set to %.2f" % [action, deadzone]}
-		
-		_:
-			command_result = {"error": "Unknown operation: %s" % operation}
 
-func _create_input_event(event_type: String, params: Dictionary) -> InputEvent:
-	match event_type:
-		"key":
-			var event = InputEventKey.new()
-			var keycode = params.get("keycode", 0)
-			var physical_keycode = params.get("physical_keycode", 0)
-			
-			if keycode > 0:
-				event.keycode = keycode
-			elif physical_keycode > 0:
-				event.physical_keycode = physical_keycode
-			else:
-				command_result = {"error": "Either keycode or physical_keycode is required for key events"}
-				return null
-			
-			event.pressed = params.get("pressed", true)
-			event.echo = params.get("echo", false)
-			
-			var modifiers = params.get("modifiers", {})
-			event.alt_pressed = modifiers.get("alt", false)
-			event.ctrl_pressed = modifiers.get("ctrl", false)
-			event.shift_pressed = modifiers.get("shift", false)
-			event.meta_pressed = modifiers.get("meta", false)
-			
-			return event
-		
-		"mouse_button":
-			var event = InputEventMouseButton.new()
-			var button_index = params.get("button_index", 1)
-			
-			event.button_index = button_index
-			event.pressed = params.get("pressed", true)
-			event.double_click = params.get("double_click", false)
-			
-			return event
-		
-		"joypad_button":
-			var event = InputEventJoypadButton.new()
-			var button_index = params.get("button_index", 0)
-			
-			event.button_index = button_index
-			event.pressed = params.get("pressed", true)
-			
-			return event
-		
-		"joypad_motion":
-			var event = InputEventJoypadMotion.new()
-			var axis = params.get("axis", 0)
-			var axis_value = params.get("axis_value", 1.0)
-			
-			event.axis = axis
-			event.axis_value = axis_value
-			
-			return event
-		
-		_:
-			command_result = {"error": "Unknown event type: %s" % event_type}
-			return null
+	if InputMap.has_action(action_name):
+		command_result = {"error": "Action '%s' already exists" % action_name}
+		return
+
+	InputMap.add_action(action_name, deadzone)
+	command_result = {"success": "Action '%s' added with deadzone %.2f" % [action_name, deadzone]}
