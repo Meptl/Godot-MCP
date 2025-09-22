@@ -2,7 +2,7 @@
 class_name MCPProjectCommands
 extends MCPBaseCommandProcessor
 
-func _handle_command(command_type: String, params: Dictionary) -> bool:
+func _handle_command(command_type: String, params: Dictionary = {}) -> bool:
 	match command_type:
 		"get_project_info":
 			_get_project_info(params)
@@ -361,7 +361,7 @@ func _input_map_add_event(params: Dictionary) -> void:
 		command_result = {"error": "Action name is required"}
 		return
 
-	if not InputMap.has_action(action_name):
+	if not ProjectSettings.has_setting("input/" + action_name):
 		command_result = {"error": "Action '%s' does not exist" % action_name}
 		return
 
