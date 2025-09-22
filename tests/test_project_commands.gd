@@ -4,6 +4,7 @@ var project_commands: MCPProjectCommands
 
 func before_each():
 	project_commands = MCPProjectCommands.new()
+	InputMap.load_from_project_settings()
 
 func after_each():
 	if project_commands:
@@ -27,7 +28,7 @@ func test_input_map_list_without_builtins():
 	var test_action = command_result.actions["test_action"]
 	var first_event = test_action.events[0]
 	assert_eq(first_event.type, "InputEventKey", "First event should be InputEventKey")
-	assert_eq(first_event.keycode, str(KEY_W), "Should have W key mapped")
+	assert_eq(first_event.physical_keycode, str(KEY_W), "Should have W key mapped")
 
 func test_input_map_list_with_builtins():
 	var command_params = {
@@ -52,7 +53,7 @@ func test_input_map_list_with_builtins():
 	var test_action = command_result.actions["test_action"]
 	var test_event = test_action.events[0]
 	assert_eq(test_event.type, "InputEventKey", "test_action first event should be InputEventKey")
-	assert_eq(test_event.keycode, str(KEY_W), "test_action should have W key mapped")
+	assert_eq(test_event.physical_keycode, str(KEY_W), "test_action should have W key mapped")
 
 func test_input_map_list_default_show_builtins():
 	var command_params = {}
@@ -67,8 +68,8 @@ func test_input_map_add_action():
 	var test_action_name = "test_new_action"
 
 	# Remove the action if it exists before testing
-	if InputMap.has_action(test_action_name):
-		InputMap.erase_action(test_action_name)
+	if ProjectSettings.has_setting("input/" + test_action_name):
+		ProjectSettings.set_setting("input/" + test_action_name, null)
 
 	# Add the action using the input_map_add_action command
 	var add_params = {
@@ -90,14 +91,14 @@ func test_input_map_add_action():
 	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
 
 	# Clean up: remove the test action
-	InputMap.erase_action(test_action_name)
+	ProjectSettings.set_setting("input/" + test_action_name, null)
 
 func test_input_map_add_action_default_deadzone():
 	var test_action_name = "test_default_deadzone"
 
 	# Remove the action if it exists before testing
-	if InputMap.has_action(test_action_name):
-		InputMap.erase_action(test_action_name)
+	if ProjectSettings.has_setting("input/" + test_action_name):
+		ProjectSettings.set_setting("input/" + test_action_name, null)
 
 	# Add the action without specifying deadzone (should use default 0.2)
 	var add_params = {
@@ -118,7 +119,7 @@ func test_input_map_add_action_default_deadzone():
 	assert_true(list_result.actions.has(test_action_name), "Added action should appear in list")
 
 	# Clean up: remove the test action
-	InputMap.erase_action(test_action_name)
+	ProjectSettings.set_setting("input/" + test_action_name, null)
 
 func test_input_map_add_action_empty_name():
 	# Test with empty action name
@@ -136,8 +137,8 @@ func test_input_map_add_action_already_exists():
 	var test_action_name = "test_existing_action"
 
 	# Remove the action if it exists before testing
-	if InputMap.has_action(test_action_name):
-		InputMap.erase_action(test_action_name)
+	if ProjectSettings.has_setting("input/" + test_action_name):
+		ProjectSettings.set_setting("input/" + test_action_name, null)
 
 	# First, add the action using our command (should succeed)
 	var add_params = {
@@ -158,7 +159,7 @@ func test_input_map_add_action_already_exists():
 	assert_true(second_result.has("error"), "Should have error for action already exists")
 
 	# Clean up: remove the test action
-	InputMap.erase_action(test_action_name)
+	ProjectSettings.set_setting("input/" + test_action_name, null)
 
 var event_type_params = [
 	["key", {"keycode": KEY_SPACE, "mods": "none"}, "Should successfully add key event"],

@@ -7,10 +7,15 @@ var base_scale: Vector3
 var time_passed: float = 0.0
 
 func _ready():
-	print(ResourceUID.path_to_uid("res://scenes/TestScene.tscn"))
-	#base_scale = scale
-	#get_node('../../CubeMeshInstance').set_indexed('mesh:size43', Vector3(2,2,2))
-	#print(get_node('../../CubeMeshInstance').get_indexed('mesh:size'))
+	print(ProjectSettings.get_setting('input/test_action'))
+	for action in InputMap.get_actions():
+		#if action.begins_with("ui_"):
+		#	continue
+		print(action)
+		#var events = InputMap.action_get_events(action)
+		#for event in events:
+			#print(event)
+
 
 func _process(delta):
 	time_passed += delta * pulse_speed

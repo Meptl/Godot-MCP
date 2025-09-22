@@ -283,11 +283,12 @@ func _view_input_map(params: Dictionary) -> void:
 
 func _input_map_list(params: Dictionary) -> void:
 	var show_builtins = params.get("show_builtins", false)
+	InputMap.load_from_project_settings()
 	var actions = InputMap.get_actions()
 	var input_map_data = {}
 
 	for action in actions:
-		if not show_builtins and action.begins_with("ui_"):
+		if not show_builtins and (action.begins_with("ui_") or action.begins_with("spatial_editor")):
 			continue
 
 		var events = InputMap.action_get_events(action)
@@ -334,22 +335,27 @@ func _input_map_list(params: Dictionary) -> void:
 func _input_map_add_action(params: Dictionary) -> void:
 	var action_name = params.get("action_name", "")
 	var deadzone = params.get("deadzone", 0.2)
+	InputMap.load_from_project_settings()
 
 	if action_name.is_empty():
 		command_result = {"error": "Action name is required"}
 		return
 
-	if InputMap.has_action(action_name):
+	if ProjectSettings.has_setting("input/" + action_name):
 		command_result = {"error": "Action '%s' already exists" % action_name}
 		return
 
-	InputMap.add_action(action_name, deadzone)
+	# Modify ProjectSettings directly instead of InputMap singleton 
+	# because InputMap changes don't persist to project settings automatically
+	ProjectSettings.set_setting("input/" + action_name, {"deadzone": deadzone, "events": []})
+	ProjectSettings.save()
 	command_result = {"success": "Action '%s' added with deadzone %.2f" % [action_name, deadzone]}
 
 func _input_map_add_event(params: Dictionary) -> void:
 	var action_name = params.get("action_name", "")
 	var event_type = params.get("type", "")
 	var input_spec = params.get("input_spec", {})
+	InputMap.load_from_project_settings()
 
 	if action_name.is_empty():
 		command_result = {"error": "Action name is required"}
@@ -381,7 +387,12 @@ func _input_map_add_event(params: Dictionary) -> void:
 	if event == null:
 		return
 
-	InputMap.action_add_event(action_name, event)
+	# Modify ProjectSettings directly instead of InputMap singleton 
+	# because InputMap changes don't persist to project settings automatically
+	var current_setting = ProjectSettings.get_setting("input/" + action_name, {"deadzone": 0.2, "events": []})
+	current_setting["events"].append(event)
+	ProjectSettings.set_setting("input/" + action_name, current_setting)
+	ProjectSettings.save()
 	command_result = {"success": "Event added to action '%s'" % action_name}
 
 func _create_key_event(input_spec: Dictionary) -> InputEvent:
