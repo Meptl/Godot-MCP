@@ -73,7 +73,7 @@ export const sceneTools: MCPTool[] = [
     }),
     execute: async ({ path }: OpenSceneParams): Promise<string> => {
       const godot = getGodotConnection();
-      
+
       try {
         const result = await godot.sendCommand<CommandResult>('open_scene', { path });
         return `Opened scene at ${result.scene_path}`;
@@ -137,10 +137,10 @@ export const sceneTools: MCPTool[] = [
     parameters: z.object({}),
     execute: async (): Promise<string> => {
       const godot = getGodotConnection();
-      
+
       try {
         const result = await godot.sendCommand<CommandResult>('get_scene_tree', {});
-        
+
         return `${JSON.stringify(result.tree, null, 2)}`;
       } catch (error) {
         throw new Error(`Failed to get scene tree: ${(error as Error).message}`);

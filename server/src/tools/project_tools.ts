@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { getGodotConnection } from '../utils/godot_connection.js';
-import { MCPTool, CommandResult } from '../utils/types.js';
+import { executeGodotCommand } from '../utils/godot_connection.js';
+import { MCPTool } from '../utils/types.js';
 
 interface InputMapListParams {
   show_builtins?: boolean;
@@ -32,17 +32,7 @@ export const projectTools: MCPTool[] = [
         .describe('Whether to include built-in UI actions (ui_*). Default is false.'),
     }),
     execute: async ({ show_builtins = false }: InputMapListParams): Promise<string> => {
-      const godot = getGodotConnection();
-
-      try {
-        const result = await godot.sendCommand<CommandResult>('input_map_list', {
-          show_builtins,
-        });
-
-        return JSON.stringify(result, null, 2);
-      } catch (error) {
-        throw new Error(`Failed to list input map: ${(error as Error).message}`);
-      }
+      return executeGodotCommand('input_map_list', { show_builtins });
     },
   },
   {
@@ -60,18 +50,7 @@ export const projectTools: MCPTool[] = [
         .describe('The deadzone value for the action (0.0 to 1.0). Default is 0.2.'),
     }),
     execute: async ({ action_name, deadzone = 0.2 }: InputMapAddActionParams): Promise<string> => {
-      const godot = getGodotConnection();
-
-      try {
-        const result = await godot.sendCommand<CommandResult>('input_map_add_action', {
-          action_name,
-          deadzone,
-        });
-
-        return JSON.stringify(result, null, 2);
-      } catch (error) {
-        throw new Error(`Failed to add input map action: ${(error as Error).message}`);
-      }
+      return executeGodotCommand('input_map_add_action', { action_name, deadzone });
     },
   },
   {
@@ -87,19 +66,7 @@ export const projectTools: MCPTool[] = [
         .describe('JSON object specifying the input event details. For key events: {keycode?: number, physical_keycode?: number, mods?: string}. For mouse events: {button_index: number}. For joy_button events: {button_index: number}. For joy_axis events: {axis: number, axis_value: number} where axis_value must be 1.0 or -1.0'),
     }),
     execute: async ({ action_name, type, input_spec }: InputMapAddEventParams): Promise<string> => {
-      const godot = getGodotConnection();
-
-      try {
-        const result = await godot.sendCommand<CommandResult>('input_map_add_event', {
-          action_name,
-          type,
-          input_spec,
-        });
-
-        return JSON.stringify(result, null, 2);
-      } catch (error) {
-        throw new Error(`Failed to add input event: ${(error as Error).message}`);
-      }
+      return executeGodotCommand('input_map_add_event', { action_name, type, input_spec });
     },
   },
   {
@@ -111,17 +78,7 @@ export const projectTools: MCPTool[] = [
         .describe('The name of the action to delete from the InputMap'),
     }),
     execute: async ({ action_name }: InputMapDeleteActionParams): Promise<string> => {
-      const godot = getGodotConnection();
-
-      try {
-        const result = await godot.sendCommand<CommandResult>('input_map_delete_action', {
-          action_name,
-        });
-
-        return JSON.stringify(result, null, 2);
-      } catch (error) {
-        throw new Error(`Failed to delete input map action: ${(error as Error).message}`);
-      }
+      return executeGodotCommand('input_map_delete_action', { action_name });
     },
   },
 ];

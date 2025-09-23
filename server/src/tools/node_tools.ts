@@ -319,12 +319,12 @@ export const nodeTools: MCPTool[] = [
     }),
     execute: async ({ base_class }: ClassDerivativesParams): Promise<string> => {
       const godot = getGodotConnection();
-      
+
       try {
         const result = await godot.sendCommand<CommandResult>('class_derivatives', {
           base_class,
         });
-        
+
         const derivatives = result.derivatives || [];
         return derivatives.join('\n');
       } catch (error) {

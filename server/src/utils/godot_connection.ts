@@ -175,3 +175,14 @@ export function getGodotConnection(port: number = 9080): GodotConnection {
   return connectionInstance;
 }
 
+export async function executeGodotCommand(commandName: string, params: Record<string, any>): Promise<string> {
+  const godot = getGodotConnection();
+
+  try {
+    const result = await godot.sendCommand(commandName, params);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    throw new Error(`Failed to execute ${commandName}: ${(error as Error).message}`);
+  }
+}
+
