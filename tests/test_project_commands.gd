@@ -163,3 +163,34 @@ func test_input_map_add_event_error_cases(params=use_parameters(error_case_param
 	var add_result = project_commands.command_result
 
 	assert_true(add_result.has("error"), expected_message)
+
+
+func test_input_map_delete_action():
+	_init_ephemeral_action()
+	project_commands._handle_command("input_map_list")
+	assert_true(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should exist before deletion")
+
+	project_commands._handle_command("input_map_delete_action", {"action_name": TEST_ACTION_EPHEMERAL})
+	var delete_result = project_commands.command_result
+	assert_true(delete_result.has("success"), "Should successfully delete action")
+
+	project_commands._handle_command("input_map_list")
+	assert_false(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should not exist after deletion")
+
+
+func test_input_map_delete_action_empty_name():
+	_init_ephemeral_action()
+	project_commands._handle_command("input_map_delete_action", {"action_name": ""})
+	assert_true(project_commands.command_result.has("error"), "Should have error for empty action name")
+
+
+func test_input_map_delete_action_nonexistent():
+	project_commands._handle_command("input_map_delete_action", {"action_name": "nonexistent_action"})
+	assert_true(project_commands.command_result.has("error"), "Should have error for nonexistent action")
+
+
+func test_input_map_delete_action_builtins():
+	project_commands._handle_command("input_map_delete_action", {"action_name": "ui_left"})
+	var result = project_commands.command_result
+	assert_true(result.has("error"), "Should have error when trying to delete builtin ui_ action")
+	assert_true(result.error.contains("Cannot delete builtin action"), "Error should mention builtin action")

@@ -17,6 +17,10 @@ interface InputMapAddEventParams {
   input_spec: Record<string, any>;
 }
 
+interface InputMapDeleteActionParams {
+  action_name: string;
+}
+
 export const projectTools: MCPTool[] = [
   {
     name: 'input_map_list',
@@ -95,6 +99,28 @@ export const projectTools: MCPTool[] = [
         return JSON.stringify(result, null, 2);
       } catch (error) {
         throw new Error(`Failed to add input event: ${(error as Error).message}`);
+      }
+    },
+  },
+  {
+    name: 'input_map_delete_action',
+    description: 'Delete an action from the InputMap. Note: Builtin actions (ui_*) cannot be deleted.',
+    parameters: z.object({
+      action_name: z.string()
+        .min(1)
+        .describe('The name of the action to delete from the InputMap'),
+    }),
+    execute: async ({ action_name }: InputMapDeleteActionParams): Promise<string> => {
+      const godot = getGodotConnection();
+
+      try {
+        const result = await godot.sendCommand<CommandResult>('input_map_delete_action', {
+          action_name,
+        });
+
+        return JSON.stringify(result, null, 2);
+      } catch (error) {
+        throw new Error(`Failed to delete input map action: ${(error as Error).message}`);
       }
     },
   },

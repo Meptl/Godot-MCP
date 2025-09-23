@@ -31,6 +31,9 @@ func _handle_command(command_type: String, params: Dictionary = {}) -> bool:
 		"input_map_add_event":
 			_input_map_add_event(params)
 			return true
+		"input_map_delete_action":
+			_input_map_delete_action(params)
+			return true
 	return false  # Command not handled
 
 func _get_project_info(_params: Dictionary) -> void:
@@ -479,3 +482,25 @@ func _create_joy_axis_event(input_spec: Dictionary) -> InputEvent:
 	joy_event.axis_value = axis_value
 
 	return joy_event
+
+func _input_map_delete_action(params: Dictionary) -> void:
+	var action_name = params.get("action_name", "")
+	InputMap.load_from_project_settings()
+
+	if action_name.is_empty():
+		command_result = {"error": "Action name is required"}
+		return
+
+	# Check if it's a builtin action (cannot be deleted) first
+	if action_name.begins_with("ui_"):
+		command_result = {"error": "Cannot delete builtin action '%s'" % action_name}
+		return
+
+	if not ProjectSettings.has_setting("input/" + action_name):
+		command_result = {"error": "Action '%s' does not exist" % action_name}
+		return
+
+	# Delete the action by setting it to null
+	ProjectSettings.set_setting("input/" + action_name, null)
+	ProjectSettings.save()
+	command_result = {"success": "Action '%s' deleted" % action_name}
