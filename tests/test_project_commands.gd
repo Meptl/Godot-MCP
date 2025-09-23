@@ -165,32 +165,156 @@ func test_input_map_add_event_error_cases(params=use_parameters(error_case_param
 	assert_true(add_result.has("error"), expected_message)
 
 
-func test_input_map_delete_action():
+func test_input_map_remove_action():
 	_init_ephemeral_action()
 	project_commands._handle_command("input_map_list")
-	assert_true(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should exist before deletion")
+	assert_true(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should exist before removal")
 
-	project_commands._handle_command("input_map_delete_action", {"action_name": TEST_ACTION_EPHEMERAL})
-	var delete_result = project_commands.command_result
-	assert_true(delete_result.has("success"), "Should successfully delete action")
+	project_commands._handle_command("input_map_remove_action", {"action_name": TEST_ACTION_EPHEMERAL})
+	var remove_result = project_commands.command_result
+	assert_true(remove_result.has("success"), "Should successfully remove action")
 
 	project_commands._handle_command("input_map_list")
-	assert_false(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should not exist after deletion")
+	assert_false(project_commands.command_result.actions.has(TEST_ACTION_EPHEMERAL), "Action should not exist after removal")
 
 
-func test_input_map_delete_action_empty_name():
+func test_input_map_remove_action_empty_name():
 	_init_ephemeral_action()
-	project_commands._handle_command("input_map_delete_action", {"action_name": ""})
+	project_commands._handle_command("input_map_remove_action", {"action_name": ""})
 	assert_true(project_commands.command_result.has("error"), "Should have error for empty action name")
 
 
-func test_input_map_delete_action_nonexistent():
-	project_commands._handle_command("input_map_delete_action", {"action_name": "nonexistent_action"})
+func test_input_map_remove_action_nonexistent():
+	project_commands._handle_command("input_map_remove_action", {"action_name": "nonexistent_action"})
 	assert_true(project_commands.command_result.has("error"), "Should have error for nonexistent action")
 
 
-func test_input_map_delete_action_builtins():
-	project_commands._handle_command("input_map_delete_action", {"action_name": "ui_left"})
+func test_input_map_remove_action_builtins():
+	project_commands._handle_command("input_map_remove_action", {"action_name": "ui_left"})
 	var result = project_commands.command_result
-	assert_true(result.has("error"), "Should have error when trying to delete builtin ui_ action")
+	assert_true(result.has("error"), "Should have error when trying to remove builtin ui_ action")
 	assert_true(result.error.contains("Cannot delete builtin action"), "Error should mention builtin action")
+
+
+func test_input_map_remove_event():
+	_init_ephemeral_action()
+
+	# Add an event first
+	var add_params = {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_SPACE, "mods": "none"}
+	}
+	project_commands._handle_command("input_map_add_event", add_params)
+	assert_true(project_commands.command_result.has("success"), "Should successfully add event")
+
+	# Verify the event exists
+	project_commands._handle_command("input_map_list")
+	var action_events = project_commands.command_result.actions[TEST_ACTION_EPHEMERAL].events
+	assert_eq(action_events.size(), 1, "Should have 1 event after adding")
+
+	# Remove the event
+	var remove_params = {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_SPACE, "mods": "none"}
+	}
+	project_commands._handle_command("input_map_remove_event", remove_params)
+	var remove_result = project_commands.command_result
+	assert_true(remove_result.has("success"), "Should successfully remove event")
+
+	# Verify the event is gone
+	project_commands._handle_command("input_map_list")
+	var action_events_after = project_commands.command_result.actions[TEST_ACTION_EPHEMERAL].events
+	assert_eq(action_events_after.size(), 0, "Should have 0 events after removing")
+
+
+func test_input_map_remove_event_empty_action_name():
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": "",
+		"type": "key",
+		"input_spec": {"keycode": KEY_A}
+	})
+	assert_true(project_commands.command_result.has("error"), "Should have error for empty action name")
+
+
+func test_input_map_remove_event_nonexistent_action():
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": "nonexistent_action",
+		"type": "key",
+		"input_spec": {"keycode": KEY_A}
+	})
+	assert_true(project_commands.command_result.has("error"), "Should have error for nonexistent action")
+
+
+func test_input_map_remove_event_empty_type():
+	_init_ephemeral_action()
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "",
+		"input_spec": {"keycode": KEY_A}
+	})
+	assert_true(project_commands.command_result.has("error"), "Should have error for empty event type")
+
+
+func test_input_map_remove_event_invalid_type():
+	_init_ephemeral_action()
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "invalid_type",
+		"input_spec": {"keycode": KEY_A}
+	})
+	assert_true(project_commands.command_result.has("error"), "Should have error for invalid event type")
+
+
+func test_input_map_remove_event_not_found():
+	_init_ephemeral_action()
+
+	# Try to remove an event that doesn't exist
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_SPACE, "mods": "none"}
+	})
+	var result = project_commands.command_result
+	assert_true(result.has("error"), "Should have error when event not found")
+	assert_true(result.error.contains("Event not found"), "Error should mention event not found")
+
+
+func test_input_map_remove_event_multiple_events():
+	_init_ephemeral_action()
+
+	# Add multiple events
+	project_commands._handle_command("input_map_add_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_SPACE, "mods": "none"}
+	})
+	project_commands._handle_command("input_map_add_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_A, "mods": "ctrl"}
+	})
+
+	# Verify we have 2 events
+	project_commands._handle_command("input_map_list")
+	var action_events = project_commands.command_result.actions[TEST_ACTION_EPHEMERAL].events
+	assert_eq(action_events.size(), 2, "Should have 2 events after adding both")
+
+	# Remove one specific event
+	project_commands._handle_command("input_map_remove_event", {
+		"action_name": TEST_ACTION_EPHEMERAL,
+		"type": "key",
+		"input_spec": {"keycode": KEY_SPACE, "mods": "none"}
+	})
+	assert_true(project_commands.command_result.has("success"), "Should successfully remove first event")
+
+	# Verify we have 1 event left
+	project_commands._handle_command("input_map_list")
+	var action_events_after = project_commands.command_result.actions[TEST_ACTION_EPHEMERAL].events
+	assert_eq(action_events_after.size(), 1, "Should have 1 event left after removing one")
+
+	# Verify the remaining event is the correct one (KEY_A with ctrl)
+	var remaining_event = action_events_after[0]
+	assert_eq(remaining_event.keycode, str(KEY_A), "Remaining event should be KEY_A")
+	assert_eq(remaining_event.mods, "ctrl", "Remaining event should have ctrl modifier")

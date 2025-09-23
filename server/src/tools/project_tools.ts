@@ -17,8 +17,14 @@ interface InputMapAddEventParams {
   input_spec: Record<string, any>;
 }
 
-interface InputMapDeleteActionParams {
+interface InputMapRemoveActionParams {
   action_name: string;
+}
+
+interface InputMapRemoveEventParams {
+  action_name: string;
+  type: string;
+  input_spec: Record<string, any>;
 }
 
 export const projectTools: MCPTool[] = [
@@ -70,15 +76,31 @@ export const projectTools: MCPTool[] = [
     },
   },
   {
-    name: 'input_map_delete_action',
-    description: 'Delete an action from the InputMap. Note: Builtin actions (ui_*) cannot be deleted.',
+    name: 'input_map_remove_action',
+    description: 'Remove an action from the InputMap. Note: Builtin actions (ui_*) cannot be removed.',
     parameters: z.object({
       action_name: z.string()
         .min(1)
-        .describe('The name of the action to delete from the InputMap'),
+        .describe('The name of the action to remove from the InputMap'),
     }),
-    execute: async ({ action_name }: InputMapDeleteActionParams): Promise<string> => {
-      return executeGodotCommand('input_map_delete_action', { action_name });
+    execute: async ({ action_name }: InputMapRemoveActionParams): Promise<string> => {
+      return executeGodotCommand('input_map_remove_action', { action_name });
+    },
+  },
+  {
+    name: 'input_map_remove_event',
+    description: 'Remove an input event from an existing action in the InputMap',
+    parameters: z.object({
+      action_name: z.string()
+        .min(1)
+        .describe('The name of the action to remove the event from'),
+      type: z.enum(['key', 'mouse', 'joy_button', 'joy_axis'])
+        .describe('The type of input event to remove'),
+      input_spec: z.record(z.any())
+        .describe('JSON object specifying the input event details to remove. For key events: {keycode?: number, physical_keycode?: number, mods?: string}. For mouse events: {button_index: number}. For joy_button events: {button_index: number}. For joy_axis events: {axis: number, axis_value: number} where axis_value must be 1.0 or -1.0'),
+    }),
+    execute: async ({ action_name, type, input_spec }: InputMapRemoveEventParams): Promise<string> => {
+      return executeGodotCommand('input_map_remove_event', { action_name, type, input_spec });
     },
   },
 ];

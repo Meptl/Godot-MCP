@@ -31,8 +31,11 @@ func _handle_command(command_type: String, params: Dictionary = {}) -> bool:
 		"input_map_add_event":
 			_input_map_add_event(params)
 			return true
-		"input_map_delete_action":
-			_input_map_delete_action(params)
+		"input_map_remove_action":
+			_input_map_remove_action(params)
+			return true
+		"input_map_remove_event":
+			_input_map_remove_event(params)
 			return true
 	return false  # Command not handled
 
@@ -483,7 +486,7 @@ func _create_joy_axis_event(input_spec: Dictionary) -> InputEvent:
 
 	return joy_event
 
-func _input_map_delete_action(params: Dictionary) -> void:
+func _input_map_remove_action(params: Dictionary) -> void:
 	var action_name = params.get("action_name", "")
 	InputMap.load_from_project_settings()
 
@@ -504,3 +507,78 @@ func _input_map_delete_action(params: Dictionary) -> void:
 	ProjectSettings.set_setting("input/" + action_name, null)
 	ProjectSettings.save()
 	command_result = {"success": "Action '%s' deleted" % action_name}
+
+func _input_map_remove_event(params: Dictionary) -> void:
+	var action_name = params.get("action_name", "")
+	var event_type = params.get("type", "")
+	var input_spec = params.get("input_spec", {})
+
+	if action_name.is_empty():
+		command_result = {"error": "Action name is required"}
+		return
+
+	if not ProjectSettings.has_setting("input/" + action_name):
+		command_result = {"error": "Action '%s' does not exist" % action_name}
+		return
+
+	if event_type.is_empty():
+		command_result = {"error": "Event type is required"}
+		return
+
+	var event_to_remove: InputEvent
+
+	match event_type:
+		"key":
+			event_to_remove = _create_key_event(input_spec)
+		"mouse":
+			event_to_remove = _create_mouse_event(input_spec)
+		"joy_button":
+			event_to_remove = _create_joy_button_event(input_spec)
+		"joy_axis":
+			event_to_remove = _create_joy_axis_event(input_spec)
+		_:
+			command_result = {"error": "Unsupported event type '%s'. Supported types: key, mouse, joy_button, joy_axis" % event_type}
+			return
+
+	if event_to_remove == null:
+		return
+
+	var current_setting = ProjectSettings.get_setting("input/" + action_name, {"deadzone": 0.2, "events": []})
+	var events = current_setting["events"]
+	var event_found = false
+
+	# Find and remove the matching event
+	for i in range(events.size() - 1, -1, -1):
+		var existing_event = events[i]
+		if _events_match(existing_event, event_to_remove):
+			events.remove_at(i)
+			event_found = true
+			break
+
+	if not event_found:
+		command_result = {"error": "Event not found in action '%s'" % action_name}
+		return
+
+	ProjectSettings.set_setting("input/" + action_name, current_setting)
+	ProjectSettings.save()
+	command_result = {"success": "Event removed from action '%s'" % action_name}
+
+func _events_match(event1: InputEvent, event2: InputEvent) -> bool:
+	if event1.get_class() != event2.get_class():
+		return false
+
+	if event1 is InputEventKey and event2 is InputEventKey:
+		return event1.keycode == event2.keycode and \
+			   event1.physical_keycode == event2.physical_keycode and \
+			   event1.ctrl_pressed == event2.ctrl_pressed and \
+			   event1.shift_pressed == event2.shift_pressed and \
+			   event1.alt_pressed == event2.alt_pressed and \
+			   event1.meta_pressed == event2.meta_pressed
+	elif event1 is InputEventMouseButton and event2 is InputEventMouseButton:
+		return event1.button_index == event2.button_index
+	elif event1 is InputEventJoypadButton and event2 is InputEventJoypadButton:
+		return event1.button_index == event2.button_index
+	elif event1 is InputEventJoypadMotion and event2 is InputEventJoypadMotion:
+		return event1.axis == event2.axis and event1.axis_value == event2.axis_value
+
+	return false
