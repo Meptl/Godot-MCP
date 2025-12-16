@@ -183,19 +183,23 @@ func _replace_print_calls(code: String) -> String:
 
 func _analyze_script(params: Dictionary) -> void:
 	var script_path = params.get("script_path", "")
-	
+
 	if script_path.is_empty():
 		command_result = {"error": "Script path cannot be empty"}
 		return
-	
+
+	var script = load(script_path)
+	if script:
+		EditorInterface.edit_script(script)
+
 	# Will be an array of two strings. stdout and stderr.
 	var output = []
 	var godot_executable = OS.get_executable_path()
 	var script_absolute_path = ProjectSettings.globalize_path(script_path)
 	var args = ["--headless", "--check-only", "--script", script_absolute_path]
-	
+
 	OS.execute(godot_executable, args, output, true)
-	
+
 	# Convert PackedStringArray to regular Array.
 	output = output.duplicate()
 	var stdout_lines = output[0].split("\n")
